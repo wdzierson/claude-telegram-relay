@@ -86,6 +86,14 @@ function checkAuth(req: Request, deps: AdminDeps): Response | null {
   return null; // Auth OK
 }
 
+/**
+ * Validate an API key against the config. Returns true if valid.
+ */
+export function validateApiKey(key: string, deps: AdminDeps): boolean {
+  const apiKey = deps.config.server?.apiKey;
+  return !!apiKey && key === apiKey;
+}
+
 export async function handleAdminRequest(
   req: Request,
   url: URL,
