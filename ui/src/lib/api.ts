@@ -59,6 +59,17 @@ export const api = {
       body: JSON.stringify({ servers }),
     }),
   getMcpCatalog: () => request<McpCatalogResponse>("/mcp/catalog"),
+
+  postChat: (message: string) =>
+    request<ChatResponse>("/chat", {
+      method: "POST",
+      body: JSON.stringify({ message }),
+    }),
+
+  cancelTask: (taskId: string) =>
+    request<{ ok: boolean }>(`/tasks/${taskId}/cancel`, {
+      method: "POST",
+    }),
 };
 
 // Response types
@@ -99,23 +110,29 @@ export interface MemoryResponse {
   total: number;
 }
 
+export interface ChatResponse {
+  text: string;
+  taskIds: string[];
+}
+
+export interface TaskRow {
+  id: string;
+  status: string;
+  description: string;
+  result?: string;
+  error?: string;
+  iteration_count: number;
+  max_iterations: number;
+  token_usage: { input: number; output: number };
+  created_at: string;
+  started_at?: string;
+  completed_at?: string;
+  parent_task_id?: string;
+}
+
 export interface TasksResponse {
-  tasks: {
-    id: string;
-    status: string;
-    description: string;
-    result: string | null;
-    error: string | null;
-    priority: number;
-    iteration_count: number;
-    max_iterations: number;
-    token_usage: number;
-    created_at: string;
-    updated_at: string;
-    started_at: string | null;
-    completed_at: string | null;
-  }[];
-  total: number;
+  tasks: TaskRow[];
+  total?: number;
 }
 
 export interface McpResponse {
