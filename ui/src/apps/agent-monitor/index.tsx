@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -320,15 +320,13 @@ function AgentMonitor(_props: AppProps) {
   const [filter, setFilter] = useState<Filter>("active");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const tasksRef = useRef(tasks);
-  tasksRef.current = tasks;
-
   // Initial fetch + polling fallback
   useEffect(() => {
     const load = async () => {
       try {
         const data = await api.getTasks(30);
         setTasks(data.tasks);
+        setError("");
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : String(err));
       }
@@ -342,7 +340,24 @@ function AgentMonitor(_props: AppProps) {
   const handleEvent = useCallback((event: TaskEvent) => {
     setTasks((prev) => {
       const idx = prev.findIndex((t) => t.id === event.taskId);
-      if (idx === -1) return prev;
+
+      // New task we haven't fetched yet — add a stub row
+      if (idx === -1) {
+        if (event.type === "task:status") {
+          const stub: TaskRow = {
+            id: event.taskId,
+            status: event.status ?? "running",
+            description: "",
+            iteration_count: 0,
+            max_iterations: 0,
+            token_usage: { input: 0, output: 0 },
+            created_at: event.timestamp,
+            started_at: event.status === "running" ? event.timestamp : undefined,
+          };
+          return [stub, ...prev];
+        }
+        return prev;
+      }
 
       const updated = [...prev];
       const task = { ...updated[idx] };

@@ -148,7 +148,7 @@ if (config.server) {
 
   // Wire broadcast from HTTP server into task queue (broadcast is set by startHTTPServer)
   if (taskQueue && adminDeps.broadcast) {
-    (taskQueue as any).deps.broadcast = adminDeps.broadcast;
+    taskQueue.setBroadcast(adminDeps.broadcast);
   }
 }
 

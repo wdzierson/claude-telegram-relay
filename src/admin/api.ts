@@ -384,12 +384,6 @@ export async function handleCancelTask(
 
   const success = await deps.taskQueue.cancel(taskId);
   if (success) {
-    deps.broadcast?.("tasks", {
-      type: "task:status",
-      taskId,
-      status: "cancelled",
-      timestamp: new Date().toISOString(),
-    });
     return json({ ok: true });
   }
   return json({ error: "Failed to cancel task" }, 500);

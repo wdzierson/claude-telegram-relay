@@ -111,6 +111,13 @@ export class TaskQueue {
     return !error;
   }
 
+  /**
+   * Set the broadcast function (injected after server starts).
+   */
+  setBroadcast(fn: (topic: string, data: unknown) => void): void {
+    this.deps.broadcast = fn;
+  }
+
   get activeCount(): number {
     return this.running.size;
   }
