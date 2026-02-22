@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   LayoutDashboard, Bot, MessageSquare, Wrench,
-  Settings, ScrollText, Plug, Brain, ChevronRight
+  Settings, ScrollText, Plug, Brain, ChevronRight, Activity
 } from "lucide-react";
 import type { BrightApp } from "../core/app-registry";
 
@@ -19,6 +19,7 @@ const ICON_MAP: Record<string, typeof LayoutDashboard> = {
   "scroll-text": ScrollText,
   "plug": Plug,
   "brain": Brain,
+  "activity": Activity,
 };
 
 const CATEGORIES: { key: BrightApp["category"]; label: string }[] = [
