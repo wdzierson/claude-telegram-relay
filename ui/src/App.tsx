@@ -1,19 +1,22 @@
+import { useState, useMemo } from "react";
+import { isAuthenticated } from "./lib/auth";
+import { Login } from "./components/Login";
+import { Desktop } from "./components/Desktop";
+import { createAppRegistry } from "./core/app-registry";
+import { registerApps } from "./apps";
+
 export function App() {
-  return (
-    <div className="h-screen w-screen bg-base text-text-primary font-body">
-      <div className="p-8 space-y-4">
-        <h1 className="font-mono text-lg font-medium text-accent-amber">Bright OS</h1>
-        <p className="text-text-secondary text-sm">Matte Industrial design system loaded.</p>
-        <div className="flex gap-2">
-          <span className="status-dot status-dot-live" />
-          <span className="status-dot status-dot-error" />
-          <span className="status-dot status-dot-idle" />
-          <span className="status-dot status-dot-amber" />
-        </div>
-        <div className="p-3 border border-border bg-surface rounded-sm">
-          <span className="font-mono text-xs text-accent-copper">Surface panel with border</span>
-        </div>
-      </div>
-    </div>
-  );
+  const [authed, setAuthed] = useState(isAuthenticated());
+
+  const registry = useMemo(() => {
+    const reg = createAppRegistry();
+    registerApps(reg);
+    return reg;
+  }, []);
+
+  if (!authed) {
+    return <Login onLogin={() => setAuthed(true)} />;
+  }
+
+  return <Desktop registry={registry} />;
 }
