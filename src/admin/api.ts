@@ -9,6 +9,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Config } from "../config/index.ts";
 import type { TaskQueue } from "../agent/tasks/queue.ts";
 import type { MCPClientManager } from "../tools/mcp/client.ts";
+import type { MemorySystem } from "../memory/index.ts";
+import type { TaskManager } from "../agent/tasks/manager.ts";
+import type { ToolRegistry } from "../tools/registry.ts";
+import { handleMessage, type AgentResponse } from "../agent/index.ts";
 import {
   parseEnvFile,
   setEnvValue,
@@ -26,6 +30,11 @@ export interface AdminDeps {
   envFilePath: string;
   startTime: number; // process start timestamp
   broadcast?: (topic: string, data: unknown) => void;
+  // Chat deps
+  memory?: MemorySystem | null;
+  profile?: string;
+  taskManager?: TaskManager | null;
+  registry?: ToolRegistry | null;
 }
 
 const json = (data: unknown, status = 200) =>
@@ -319,4 +328,69 @@ export async function handleGetTasks(
   }
 
   return json({ tasks: data || [], total: count || 0 });
+}
+
+// ==================== Chat ====================
+
+export async function handleChat(
+  req: Request,
+  deps: AdminDeps
+): Promise<Response> {
+  if (!deps.memory || !deps.profile) {
+    return json({ error: "Chat not available — memory or profile not configured" }, 503);
+  }
+
+  let body: { message?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return json({ error: "Invalid JSON body" }, 400);
+  }
+
+  const message = body.message?.trim();
+  if (!message) {
+    return json({ error: "message is required" }, 400);
+  }
+
+  try {
+    const response: AgentResponse = await handleMessage(
+      { type: "text", text: message, metadata: { channel: "admin" } },
+      deps.config,
+      deps.memory,
+      deps.profile,
+      deps.taskManager,
+      deps.registry
+    );
+
+    return json({
+      text: response.text,
+      taskIds: response.taskIds,
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return json({ error: `Chat failed: ${msg}` }, 500);
+  }
+}
+
+// ==================== Cancel Task ====================
+
+export async function handleCancelTask(
+  taskId: string,
+  deps: AdminDeps
+): Promise<Response> {
+  if (!deps.taskQueue) {
+    return json({ error: "Task queue not available" }, 503);
+  }
+
+  const success = await deps.taskQueue.cancel(taskId);
+  if (success) {
+    deps.broadcast?.("tasks", {
+      type: "task:status",
+      taskId,
+      status: "cancelled",
+      timestamp: new Date().toISOString(),
+    });
+    return json({ ok: true });
+  }
+  return json({ error: "Failed to cancel task" }, 500);
 }

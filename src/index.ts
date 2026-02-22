@@ -131,6 +131,10 @@ if (config.server) {
     mcpManager: mcpManager || null,
     envFilePath: join(config.paths.projectRoot, ".env"),
     startTime: Date.now(),
+    memory,
+    profile,
+    taskManager: taskManager || null,
+    registry: registry || null,
   };
 
   phoneServer = startHTTPServer({

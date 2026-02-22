@@ -18,6 +18,8 @@ import {
   handleGetMessages,
   handleGetMemory,
   handleGetTasks,
+  handleChat,
+  handleCancelTask,
 } from "./api.ts";
 
 const UI_DIST_DIR = resolve(dirname(import.meta.path), "../../ui/dist");
@@ -137,6 +139,13 @@ export async function handleAdminRequest(
     }
     if (req.method === "GET" && path === "/admin/api/tasks") {
       return handleGetTasks(url, deps);
+    }
+    if (req.method === "POST" && path === "/admin/api/chat") {
+      return handleChat(req, deps);
+    }
+    const cancelMatch = path.match(/^\/admin\/api\/tasks\/([^/]+)\/cancel$/);
+    if (req.method === "POST" && cancelMatch) {
+      return handleCancelTask(cancelMatch[1], deps);
     }
 
     return new Response(JSON.stringify({ error: "Not Found" }), {
