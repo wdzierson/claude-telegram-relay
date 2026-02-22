@@ -177,6 +177,36 @@ export class TaskQueue {
 
     for (const row of queued) {
       if (this.running.size >= effectiveMax) break;
+
+      // Dependency check: skip tasks whose prerequisites haven't completed
+      const deps = (row.metadata as Record<string, unknown>)?.depends_on as string[] | undefined;
+      if (deps && deps.length > 0) {
+        const { count } = await this.deps.supabaseClient
+          .from("tasks")
+          .select("*", { count: "exact", head: true })
+          .in("id", deps)
+          .eq("status", "completed");
+        if (count !== deps.length) continue;
+      }
+
+      // Inject dependency results into description for downstream tasks
+      if (deps && deps.length > 0) {
+        const { data: depResults } = await this.deps.supabaseClient
+          .from("tasks")
+          .select("description, result")
+          .in("id", deps)
+          .eq("status", "completed");
+
+        if (depResults && depResults.length > 0) {
+          const context = depResults
+            .map((d: any) =>
+              `[Result from: ${d.description.substring(0, 80)}]\n${(d.result || "").substring(0, 3000)}`
+            )
+            .join("\n\n---\n\n");
+          row.description = `${row.description}\n\n## Context from prerequisite tasks:\n${context}`;
+        }
+      }
+
       this.startTask(row);
     }
   }
@@ -186,6 +216,10 @@ export class TaskQueue {
     const taskId = row.id;
 
     this.running.set(taskId, { id: taskId, abortController });
+
+    // Resolve agent type model override from metadata
+    const meta = row.metadata as Record<string, unknown> | undefined;
+    const agentModel = meta?.agent_model as string | undefined;
 
     const task: Task = {
       id: row.id,
@@ -222,7 +256,9 @@ export class TaskQueue {
           resumeHistory,
           signal: abortController.signal,
           sendMessage: this.deps.sendMessage,
-          anthropicConfig: this.deps.anthropicConfig,
+          anthropicConfig: agentModel
+            ? { ...this.deps.anthropicConfig, model: agentModel }
+            : this.deps.anthropicConfig,
           onStatusChange: async (id, status, result, error) => {
             this.log.info("queue", "task_status_change", { taskId: id, status });
             const update: Record<string, unknown> = {

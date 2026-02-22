@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bright Admin</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <link rel="stylesheet" href="/admin/app.css">
+</head>
+<body>
+  <!-- Login overlay -->
+  <dialog id="login-dialog" open>
+    <article>
+      <header>Bright Admin</header>
+      <p>Enter your server API key to continue.</p>
+      <input type="password" id="login-key" placeholder="SERVER_API_KEY" autofocus>
+      <footer>
+        <button id="login-btn">Sign In</button>
+      </footer>
+    </article>
+  </dialog>
+
+  <!-- Main app (hidden until authed) -->
+  <div id="shell" hidden>
+    <nav class="container-fluid">
+      <ul>
+        <li><strong>Bright Admin</strong></li>
+      </ul>
+      <ul>
+        <li><a href="#/" class="nav-link" data-page="dashboard">Dashboard</a></li>
+        <li><a href="#/config" class="nav-link" data-page="config">Configuration</a></li>
+        <li><a href="#/logs" class="nav-link" data-page="logs">Chat Logs</a></li>
+        <li><a href="#/mcp" class="nav-link" data-page="mcp">MCP Servers</a></li>
+        <li><a href="#" id="logout-btn" role="button" class="outline secondary">Logout</a></li>
+      </ul>
+    </nav>
+
+    <!-- Restart banner -->
+    <div id="restart-banner" class="container" hidden>
+      <article class="restart-notice">
+        Configuration changed. Restart the bot for changes to take effect.
+      </article>
+    </div>
+
+    <main class="container" id="app">
+      <!-- Pages render here -->
+    </main>
+  </div>
+
+  <script src="/admin/app.js"></script>
+</body>
+</html>

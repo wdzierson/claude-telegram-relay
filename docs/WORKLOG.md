@@ -1047,3 +1047,172 @@ nanobanana → local file path → upload_image → Supabase Storage public URL 
 - Phase 2: Agent Monitor app (real-time task transcript), WebSocket streaming, Chat app
 - Phase 3: Logs app, MCP Manager app, Memory Explorer
 - Phase 4: Workflow Builder with @dnd-kit canvas
+
+## 2026-02-21 — Multi-Agent: Agent Types + Orchestrator (Tier 1 + 2)
+
+**Motivation:** Bright's task system ran all background agents with the same personality, tools, and iteration budgets. Complex requests like "research from 3 angles and write a report" were handled by a single agent that ran out of iterations or forgot later steps. Inspired by OpenClaw's multi-agent architecture, added specialized agent types and an orchestrator for complex task decomposition.
+
+**Tier 1 — Agent Types (4 config files, 1 new module, 5 modified):**
+
+| File | Purpose |
+|------|---------|
+| `config/agents/researcher.md` | Research agent: 15 iterations, depth-over-breadth, structured findings with citations |
+| `config/agents/writer.md` | Writer agent: 20 iterations, clear structure, engagement focus |
+| `config/agents/analyst.md` | Analyst agent: 15 iterations, skeptical data-driven personality |
+| `config/agents/default.md` | Fallback: 25 iterations, no additional personality (uses global soul.md) |
+| `src/agent/tasks/agent-types.ts` | **NEW** — `loadAgentTypes()` reads `config/agents/*.md`, parses `## Config` for params, everything else becomes soul text |
+
+Agent type `.md` format:
+```markdown
+# Researcher
+## Config
+- **Max iterations:** 15
+- **Model:** default
+## Personality
+You are a thorough, methodical research agent...
+```
+
+**How agent types work:**
+1. At startup, `loadAgentTypes()` reads all `.md` files from `config/agents/`
+2. `[TASK:researcher: deep research on quantum computing]` → typed task creation
+3. `buildSystemPrompt()` injects the type's soul text for identity, uses type's iteration budget
+4. `startTask()` in queue applies optional model override from metadata
+5. Untyped `[TASK: description]` falls back to default agent type (current behavior preserved)
+
+**Tier 2 — Orchestrator (1 new module, dependency-aware scheduling):**
+
+| File | Purpose |
+|------|---------|
+| `src/agent/tasks/orchestrator.ts` | **NEW** — `decompose()` calls Claude to break complex requests into typed task DAGs with dependency refs |
+
+**How TASKFLOW works:**
+1. Chat agent emits `[TASKFLOW: Research AI from 3 angles and write a report]`
+2. Orchestrator calls Claude with available agent types → returns JSON task graph
+3. `createTaskFlow()` creates all tasks in Supabase, maps temp IDs → real UUIDs in `depends_on`
+4. Root tasks (no deps) enqueued immediately, run in parallel
+5. Queue's `tick()` checks `metadata.depends_on` — skips tasks whose prerequisites aren't done
+6. When deps complete, their results are injected into the dependent task's description as context
+7. Final synthesis task runs with all predecessor results available
+
+```
+User: "Research AI from 3 angles and write a report"
+  → [TASKFLOW: ...]
+  → Orchestrator decomposes:
+    ├── [researcher] "Industry angle"      (A) — no deps
+    ├── [researcher] "Academic angle"       (B) — no deps
+    ├── [researcher] "Ethics angle"         (C) — no deps
+    └── [writer] "Write report"            (D) — depends_on: [A, B, C]
+  → A, B, C run in parallel → D runs when all complete
+```
+
+**Modified files:**
+
+| File | Change |
+|------|--------|
+| `src/agent/tasks/intents.ts` | Added `[TASK:type: description]` parsing, `[TASKFLOW:]` parsing, `agentType` field on TaskIntent |
+| `src/agent/tasks/manager.ts` | `agentTypes` in deps, `agentType` param on `createAndRunTask()` and `buildSystemPrompt()`, new `createTaskFlow()` and `getAgentTypeNames()` methods |
+| `src/agent/tasks/queue.ts` | Dependency-aware `tick()` with `depends_on` checking, dependency result injection into task description, agent model override in `startTask()` |
+| `src/agent/prompt.ts` | `agentTypeNames` opt, typed task syntax + TASKFLOW guidance in TASK MANAGEMENT section |
+| `src/agent/index.ts` | Handle `flow` intent (decompose → createTaskFlow with fallback), pass `agentType` on typed `create`, pass `agentTypeNames` to prompt |
+| `src/channels/telegram/bot.ts` | Accept `agentTypes` param, pass to task manager, resolve `agentTypeNames`, pass to all `handleMessage` calls |
+| `src/index.ts` | Load agent types at startup via `loadAgentTypes()`, pass to `createBot()` |
+
+**Design decisions:**
+- Agent types defined as `.md` files (human-readable, versionable, no code changes to add types)
+- No DB migration needed — agent type, dependencies, and flow info stored in existing `metadata JSONB`
+- Orchestrator is a single lightweight Claude call (1024 max_tokens) — decomposition, not execution
+- Fallback on orchestrator failure: creates a single default task (graceful degradation)
+- Cycle detection in orchestrator output (DFS) prevents infinite dependency loops
+- Typed task regex has guard clauses to avoid matching `[TASKS: status]` and `[TASKS: cancel]`
+
+**Current state:**
+- Build passes clean (420 modules).
+- Tier 1 + Tier 2 both implemented.
+
+**What's next:**
+- End-to-end test: send typed task `[TASK:researcher: ...]` → verify researcher personality in output
+- End-to-end test: send TASKFLOW → verify parallel decomposition + dependency scheduling
+- Add more agent types as needed (coder, planner, etc.)
+- VPS deployment for 24/7 availability
+
+## 2026-02-22 — Cloud-First File Storage for MCP Outputs
+
+**Problem:**
+MCP tools (nanobanana image generation, future ElevenLabs audio, etc.) saved files to local temp directories only. This caused several issues:
+- Files ephemeral on VPS/cloud (OS cleans `$TMPDIR`)
+- Background task agents couldn't deliver MCP-generated images (takePendingImages() never called in runner)
+- 3-step manual workflow: generate → upload_image → use URL
+- Images only — no path for audio, video, PDFs to cloud storage
+- Chat loop had no upload capability
+
+**What was built:**
+
+| File | Change |
+|------|--------|
+| `src/utils/file-store.ts` | **NEW** — Reusable Supabase Storage upload utility. Supports images, audio, video, PDFs, CSV, etc. Returns public URL or null on failure (graceful). |
+| `src/tools/mcp/client.ts` | Added `FileStore` injection via `setFileStore()`. `callTool()` now auto-uploads file outputs to Supabase Storage and appends `[URL: ...]` to tool text. Works for both image content blocks and text path detection. |
+| `src/agent/tasks/tools.ts` | Renamed `upload_image` → `upload_file`. Bucket changed from `task-images` → `agent-files`. MIME types expanded from images-only to all common file types. Now a manual escape hatch (MCP auto-uploads). |
+| `src/agent/tasks/manager.ts` | Renamed tool references. Simplified system prompt: removed "CRITICAL WORKFLOW" 3-step instructions, replaced with "MCP tools auto-upload, use the [URL: ...] directly". |
+| `src/agent/prompt.ts` | Updated chat-loop image generation guidance to reference auto-upload instead of manual upload_image workflow. |
+| `src/channels/telegram/bot.ts` | Creates `FileStore` from Supabase config, injects into `MCPClientManager` at startup. |
+| `src/agent/tasks/__tests__/task-system.test.ts` | Updated all Phase 5 tests for `upload_file` name, `agent-files` bucket, auto-upload guidance assertions. |
+| Supabase | Created `agent-files` bucket (public, 50MB limit, broad MIME types) with RLS policies. |
+
+**Architecture:**
+
+```
+MCP Tool (nanobanana, ElevenLabs, etc.)
+  ↓ callTool()
+Save to local temp (for Telegram InputFile)  +  Auto-upload to Supabase → [URL: ...]
+  ↓
+Chat loop: sends local file via Telegram
+Background tasks: agent sees [URL: ...] in tool output → uses directly with Google APIs
+```
+
+Before: generate → upload_image → use URL (3 steps, background only)
+After: generate → use URL from output (1 step, automatic, everywhere)
+
+**No breaking changes:**
+- `_pendingImages` mechanism unchanged — Telegram photo delivery still works via local paths
+- Old `task-images` bucket left in place (existing URLs continue to work)
+- Build passes clean (421 modules), 49 tests pass
+
+**What's next:**
+- End-to-end test: ask nanobanana to generate an image → verify `[URL: ...]` appears in output
+- End-to-end test: background task with Google Slides + nanobanana → verify agent uses auto-uploaded URL
+- VPS deployment for 24/7 availability
+
+## 2026-02-22 — Browser Automation: Playwright + Stagehand (Replacing Puppeteer)
+
+**Motivation:** Replaced Puppeteer MCP with two complementary browser automation tools:
+- **Playwright** (`@playwright/mcp`) — Deterministic, accessibility-tree-based automation. Fast, no vision model needed. Best for structured pages, screenshots, data extraction.
+- **Stagehand** (`@browserbasehq/mcp-stagehand`) — AI-powered natural language browser control. `act("click the reservation button")`. Best for unknown/complex UIs, form filling, making reservations.
+
+**Use cases now supported:**
+- "Go to website X, search for Y, screenshot results, add analysis to a Google Doc" (Playwright)
+- "Go to resy.com and make me a reservation for Friday at 7pm" (Stagehand)
+- Combined multi-tool workflows (browser + Google Workspace + image gen)
+
+**Changes:**
+
+| File | Change |
+|------|--------|
+| `config/mcp-servers.json` | Replaced puppeteer → playwright + stagehand (both `scope: "background"`, headless) |
+| `config/mcp-servers.example.json` | Same replacement with `"destructive"` approval policy |
+| `src/admin/mcp-catalog.ts` | Replaced puppeteer catalog entry with playwright + stagehand templates |
+| `config/agents/browser.md` | **NEW** — browser specialist agent type (30 iterations, guidance for when to use each tool) |
+| `src/agent/tasks/manager.ts` | Added browser-specific system prompt guidance for playwright + stagehand MCP categories |
+| `src/agent/prompt.ts` | Updated task capabilities description to mention browser automation |
+
+**Design decisions:**
+- Both tools scoped as `"background"` only — browser automation is slow and memory-heavy (spawns Chrome), should not block real-time chat
+- Chat agent triggers browser work via `[TASK:browser: go to resy.com and make a reservation...]`
+- Browser agent type gets 30 max iterations (higher than default 25) because browser interactions burn 2-3 tool calls per page action
+- Stagehand runs in local headless mode by default (no Browserbase API key needed); cloud mode available by adding optional env vars later
+- No code changes to MCP pipeline — both tools work through the existing generic MCP client/adapter/registry
+
+**What's next:**
+- Test Playwright: navigate to a page, take screenshot, extract data
+- Test Stagehand: natural language form filling on a complex site
+- Test combined workflow: `[TASK:browser: go to X, search for Y, screenshot results, add analysis to Google Doc]`
+- VPS deployment for 24/7 availability

@@ -1,0 +1,61 @@
+{
+  "servers": [
+    {
+      "name": "google",
+      "command": "npx",
+      "args": ["-y", "@presto-ai/google-workspace-mcp"],
+      "approvalPolicy": "never"
+    },
+    {
+      "name": "github",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "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"
+      },
+      "approvalPolicy": "never"
+    },
+    {
+      "name": "filesystem",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Applications"],
+      "approvalPolicy": "never"
+    },
+    {
+      "name": "memory",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "approvalPolicy": "never"
+    },
+    {
+      "name": "playwright",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"],
+      "env": { "PLAYWRIGHT_MCP_HEADLESS": "true" },
+      "approvalPolicy": "never",
+      "scope": "background"
+    },
+    {
+      "name": "stagehand",
+      "command": "npx",
+      "args": ["-y", "@browserbasehq/mcp-server-browserbase"],
+      "env": {
+        "BROWSERBASE_API_KEY": "bb_live_e5jhjQ-QyWHHxasL3o4eYYQMDOQ",
+        "BROWSERBASE_PROJECT_ID": "6ba69065-c439-4686-9ee1-1420e45fe0ea",
+        "GEMINI_API_KEY": "AIzaSyB96CF6rVlzZj06LY354W_Zn8gMFwkUSQI"
+      },
+      "approvalPolicy": "never",
+      "scope": "background"
+    },
+    {
+      "name": "nanobanana",
+      "command": "npx",
+      "args": ["-y", "gemini-nanobanana-mcp@latest"],
+      "env": {
+        "GEMINI_API_KEY": "AIzaSyB96CF6rVlzZj06LY354W_Zn8gMFwkUSQI",
+        "GEMINI_IMAGE_ENDPOINT": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent"
+      },
+      "approvalPolicy": "never"
+    }
+  ]
+}

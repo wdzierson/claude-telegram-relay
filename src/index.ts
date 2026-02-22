@@ -12,6 +12,7 @@ import { readFile, writeFile, unlink } from "fs/promises";
 import { join } from "path";
 import { loadConfig } from "./config/index.ts";
 import { loadProfile, loadHeartbeatRules } from "./config/profile.ts";
+import { loadAgentTypes } from "./agent/tasks/agent-types.ts";
 import { createMemory } from "./memory/index.ts";
 import { createBot } from "./channels/telegram/bot.ts";
 import { Heartbeat } from "./scheduler/heartbeat.ts";
@@ -72,15 +73,22 @@ if (!(await acquireLock())) {
 // ============================================================
 
 const memory = createMemory(config.supabase);
-const profile = await loadProfile(config.paths.projectRoot);
-const heartbeatRules = await loadHeartbeatRules(config.paths.projectRoot);
+const [profile, heartbeatRules, agentTypes] = await Promise.all([
+  loadProfile(config.paths.projectRoot),
+  loadHeartbeatRules(config.paths.projectRoot),
+  loadAgentTypes(config.paths.projectRoot),
+]);
 const log = createLogger(memory.client);
+
+if (agentTypes.size > 0) {
+  console.log(`Agent types loaded: ${Array.from(agentTypes.keys()).join(", ")}`);
+}
 
 // ============================================================
 // START BOT + QUEUE + HEARTBEAT
 // ============================================================
 
-const { bot, taskQueue, taskManager, registry, mcpManager } = await createBot(config, memory, profile);
+const { bot, taskQueue, taskManager, registry, mcpManager } = await createBot(config, memory, profile, agentTypes);
 
 console.log("Starting Bright...");
 console.log(
@@ -144,6 +152,7 @@ if (config.server) {
     registry,
     sessions,
     adminDeps,
+    taskManager: taskManager || null,
   });
 
   // Wire broadcast from HTTP server into task queue (broadcast is set by startHTTPServer)

@@ -1,0 +1,192 @@
+/* Bright Admin — Custom Styles */
+
+/* Restart banner */
+.restart-notice {
+  background: var(--pico-del-color);
+  color: var(--pico-background-color);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: var(--pico-border-radius);
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Status badges */
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.badge-running   { background: #2563eb; color: #fff; }
+.badge-completed { background: #16a34a; color: #fff; }
+.badge-failed    { background: #dc2626; color: #fff; }
+.badge-queued    { background: #d97706; color: #fff; }
+.badge-cancelled { background: #6b7280; color: #fff; }
+.badge-waiting_user { background: #8b5cf6; color: #fff; }
+.badge-pending   { background: #6b7280; color: #fff; }
+.badge-connected { background: #16a34a; color: #fff; }
+.badge-not-configured { background: #6b7280; color: #fff; }
+
+/* Dashboard grid */
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.status-card {
+  text-align: center;
+}
+.status-card h3 {
+  margin-bottom: 0.25rem;
+  font-size: 2rem;
+}
+.status-card p {
+  margin: 0;
+  color: var(--pico-muted-color);
+}
+
+/* Config sections */
+.config-section {
+  margin-bottom: 2rem;
+}
+.config-section h3 {
+  border-bottom: 1px solid var(--pico-muted-border-color);
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+.config-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.config-row label {
+  font-family: monospace;
+  font-size: 0.85rem;
+  word-break: break-all;
+}
+.config-row input {
+  margin-bottom: 0;
+}
+
+/* Chat log messages */
+.message-item {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--pico-muted-border-color);
+}
+.message-item:last-child {
+  border-bottom: none;
+}
+.message-meta {
+  font-size: 0.8rem;
+  color: var(--pico-muted-color);
+  margin-bottom: 0.25rem;
+}
+.message-role {
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.message-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.message-content.truncated {
+  max-height: 4.5em;
+  overflow: hidden;
+  cursor: pointer;
+}
+.message-content.truncated:hover {
+  max-height: none;
+}
+
+/* MCP server cards */
+.mcp-card {
+  margin-bottom: 1rem;
+}
+.mcp-card code {
+  font-size: 0.85rem;
+}
+.mcp-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.mcp-details {
+  font-size: 0.9rem;
+}
+.mcp-details p {
+  margin-bottom: 0.25rem;
+}
+
+/* Status dots */
+.status-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-dot.connected { background: #16a34a; }
+.status-dot.disconnected { background: #6b7280; }
+
+/* Tool list */
+.tool-list {
+  font-size: 0.85rem;
+  padding-left: 1.5rem;
+  margin: 0.25rem 0;
+}
+.tool-list li {
+  margin-bottom: 0.15rem;
+}
+
+/* Catalog grid */
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.catalog-btn {
+  text-align: left;
+  padding: 0.75rem;
+  height: auto;
+  line-height: 1.4;
+}
+.catalog-btn strong {
+  font-size: 1rem;
+}
+.catalog-btn small {
+  display: block;
+  margin-top: 0.25rem;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+/* Active nav */
+.nav-link[aria-current="page"] {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+/* Login dialog centering */
+#login-dialog {
+  max-width: 400px;
+}
+
+/* Toggle button for sensitive fields */
+.toggle-vis {
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.5rem;
+}
