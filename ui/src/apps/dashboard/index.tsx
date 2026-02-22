@@ -55,8 +55,8 @@ function DashboardContent(_props: AppProps) {
         setStatus(s);
         setTasks(t.tasks);
         setMessages(m.messages);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : String(err));
       }
     };
     load();

@@ -12,7 +12,7 @@ function ConfigContent(_props: AppProps) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    api.getConfig().then((data) => setSections(data.sections)).catch((e) => setError(e.message));
+    api.getConfig().then((data) => setSections(data.sections)).catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)));
   }, []);
 
   const handleSave = async () => {
@@ -26,8 +26,8 @@ function ConfigContent(_props: AppProps) {
       setEdits({});
       const data = await api.getConfig();
       setSections(data.sections);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setSaving(false);
     }
