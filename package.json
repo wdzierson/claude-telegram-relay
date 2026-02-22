@@ -1,22 +1,28 @@
 {
-  "name": "claude-telegram-relay",
-  "version": "1.0.0",
+  "name": "bright",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
-    "start": "bun run src/relay.ts",
-    "dev": "bun run --watch src/relay.ts",
+    "start": "bun run src/index.ts",
+    "dev": "bun run --watch src/index.ts",
+    "start:legacy": "bun run src/relay.ts",
     "setup": "bun run setup/install.ts",
     "test:telegram": "bun run setup/test-telegram.ts",
     "test:supabase": "bun run setup/test-supabase.ts",
     "test:voice": "bun run setup/test-voice.ts",
     "setup:launchd": "bun run setup/configure-launchd.ts",
     "setup:services": "bun run setup/configure-services.ts",
-    "setup:verify": "bun run setup/verify.ts"
+    "setup:verify": "bun run setup/verify.ts",
+    "build:ui": "cd ui && bun run build",
+    "dev:ui": "cd ui && bun run dev"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "@supabase/supabase-js": "^2.45.0",
     "grammy": "^1.21.1",
-    "groq-sdk": "^0.8.0"
+    "groq-sdk": "^0.8.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/bun": "latest"
