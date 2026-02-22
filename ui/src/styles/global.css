@@ -1,1 +1,143 @@
 @import "tailwindcss";
+
+/* ============================================
+   DESIGN TOKENS — "Matte Industrial" theme
+   ============================================ */
+
+@theme {
+  --color-base: #121212;
+  --color-surface: #1a1a1a;
+  --color-elevated: #242424;
+  --color-border: #2e2e2e;
+  --color-border-active: #3d3d3d;
+  --color-text-primary: #e8e4dd;
+  --color-text-secondary: #8a8578;
+  --color-accent-amber: #d4a053;
+  --color-accent-copper: #c17f59;
+  --color-status-live: #5c9a6b;
+  --color-status-error: #b85c5c;
+  --color-status-idle: #6b6b6b;
+  --color-glass: rgba(26, 26, 26, 0.85);
+
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-body: "DM Sans", system-ui, sans-serif;
+}
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background-color: var(--color-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Noise texture overlay */
+#root::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ============================================
+   SCROLLBAR
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-active);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-secondary);
+}
+
+/* ============================================
+   WINDOW ANIMATIONS
+   ============================================ */
+
+@keyframes window-open {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes window-close {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-window-open {
+  animation: window-open 150ms ease-out;
+}
+
+.animate-window-close {
+  animation: window-close 100ms ease-out forwards;
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+.glass {
+  background-color: var(--color-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.status-dot-live { background-color: var(--color-status-live); }
+.status-dot-error { background-color: var(--color-status-error); }
+.status-dot-idle { background-color: var(--color-status-idle); }
+.status-dot-amber { background-color: var(--color-accent-amber); }
