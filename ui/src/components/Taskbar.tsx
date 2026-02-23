@@ -10,9 +10,9 @@ export function Taskbar() {
 
   return (
     <div
-      className="flex items-center gap-1 px-3 border-t shrink-0"
+      className="flex items-center gap-2 px-4 border-t shrink-0"
       style={{
-        height: 36,
+        height: 44,
         borderColor: "var(--color-border)",
         background: "var(--color-surface)",
       }}
@@ -24,11 +24,12 @@ export function Taskbar() {
           return (
             <button
               key={win.id}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs font-mono transition-colors relative ${
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-body transition-colors relative ${
                 isActive
-                  ? "text-text-primary bg-elevated"
-                  : "text-text-secondary hover:text-text-primary hover:bg-elevated/50"
+                  ? "text-text-primary"
+                  : "text-text-secondary hover:text-text-primary hover:bg-white/5"
               } ${win.isMinimized ? "opacity-50" : ""}`}
+              style={isActive ? { background: "rgba(78, 205, 196, 0.15)" } : undefined}
               onClick={() => focusWindow(win.id)}
               onContextMenu={(e) => {
                 e.preventDefault();
@@ -40,7 +41,7 @@ export function Taskbar() {
               {isActive && (
                 <span
                   className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-6 rounded-full"
-                  style={{ background: "var(--color-accent-amber)" }}
+                  style={{ background: "var(--color-accent-active)" }}
                 />
               )}
             </button>
@@ -49,7 +50,7 @@ export function Taskbar() {
       </div>
 
       {/* Right side stats */}
-      <div className="flex items-center gap-3 text-xs text-text-secondary font-mono">
+      <div className="flex items-center gap-3 text-xs text-text-secondary font-body">
         <span>{windowList.length} window{windowList.length !== 1 ? "s" : ""}</span>
       </div>
     </div>

@@ -70,7 +70,7 @@ export function Window({ win, children, icon }: WindowProps) {
   if (win.isMinimized) return null;
 
   const style: React.CSSProperties = win.isMaximized
-    ? { position: "absolute", inset: 0, zIndex: win.zIndex }
+    ? { position: "absolute", inset: 0, zIndex: win.zIndex, borderRadius: 0 }
     : {
         position: "absolute",
         left: win.x,
@@ -85,21 +85,23 @@ export function Window({ win, children, icon }: WindowProps) {
       className="flex flex-col animate-window-open"
       style={{
         ...style,
-        border: "1px solid var(--color-border)",
-        borderRadius: "2px",
+        border: "1px solid var(--color-glass-border)",
+        borderRadius: "var(--radius-window)",
         overflow: "hidden",
-        background: "var(--color-surface)",
-        boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+        background: "var(--color-glass)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
       }}
       onMouseDown={() => focusWindow(win.id)}
     >
       {/* Title bar */}
       <div
-        className="flex items-center justify-between px-3 shrink-0 select-none cursor-default"
+        className="flex items-center justify-between px-4 shrink-0 select-none cursor-default"
         style={{
-          height: 32,
-          background: "var(--color-elevated)",
-          borderBottom: "1px solid var(--color-border)",
+          height: 40,
+          background: "transparent",
+          borderBottom: "1px solid var(--color-glass-border)",
         }}
         onMouseDown={onDragStart}
         onDoubleClick={() => toggleMaximize(win.id)}
@@ -107,7 +109,7 @@ export function Window({ win, children, icon }: WindowProps) {
         <div className="flex items-center gap-2 min-w-0">
           {icon && <span className="text-text-secondary shrink-0">{icon}</span>}
           <span
-            className="font-mono text-xs truncate"
+            className="font-body text-xs truncate"
             style={{ color: "var(--color-text-secondary)" }}
           >
             {win.title}
@@ -116,13 +118,13 @@ export function Window({ win, children, icon }: WindowProps) {
 
         <div className="flex items-center gap-1">
           <button
-            className="p-1 rounded hover:bg-border transition-colors"
+            className="p-1.5 rounded-full hover:bg-white/5 transition-colors"
             onClick={(e) => { e.stopPropagation(); minimizeWindow(win.id); }}
           >
             <Minus size={12} className="text-text-secondary" />
           </button>
           <button
-            className="p-1 rounded hover:bg-border transition-colors"
+            className="p-1.5 rounded-full hover:bg-white/5 transition-colors"
             onClick={(e) => { e.stopPropagation(); toggleMaximize(win.id); }}
           >
             {win.isMaximized ? (
@@ -132,7 +134,7 @@ export function Window({ win, children, icon }: WindowProps) {
             )}
           </button>
           <button
-            className="p-1 rounded hover:bg-status-error/20 transition-colors"
+            className="p-1.5 rounded-full hover:bg-status-error/20 transition-colors"
             onClick={(e) => { e.stopPropagation(); closeWindow(win.id); }}
           >
             <X size={12} className="text-text-secondary" />

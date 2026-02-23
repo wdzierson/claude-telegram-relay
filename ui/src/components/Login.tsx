@@ -39,22 +39,25 @@ export function Login({ onLogin }: LoginProps) {
   return (
     <div className="h-screen w-screen flex items-center justify-center bg-base">
       <div
-        className="w-full max-w-sm p-8"
+        className="w-full max-w-sm px-10 py-10"
         style={{
-          border: "1px solid var(--color-border)",
-          borderRadius: "2px",
-          background: "var(--color-surface)",
+          border: "1px solid var(--color-glass-border)",
+          borderRadius: "var(--radius-window)",
+          background: "var(--color-glass)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
         }}
       >
-        <div className="flex items-center gap-2 mb-8">
-          <Zap size={20} strokeWidth={1.5} className="text-accent-amber" />
-          <h1 className="font-mono text-lg font-medium text-text-primary">
+        <div className="flex items-center gap-3 mb-10">
+          <Zap size={22} strokeWidth={1.5} className="text-accent-primary" />
+          <h1 className="font-body text-xl font-medium text-text-primary">
             Bright OS
           </h1>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <label className="block mb-2 text-xs font-body font-semibold uppercase tracking-widest text-text-secondary">
+          <label className="block mb-3 text-[11px] font-body font-medium uppercase tracking-widest text-text-secondary">
             API Key
           </label>
           <input
@@ -63,25 +66,25 @@ export function Login({ onLogin }: LoginProps) {
             onChange={(e) => setKey(e.target.value)}
             placeholder="SERVER_API_KEY"
             autoFocus
-            className="w-full px-3 py-2 mb-4 font-mono text-sm bg-base border rounded-md text-text-primary placeholder:text-text-secondary/50 outline-none focus:border-accent-amber transition-colors"
+            className="w-full px-4 py-3 mb-6 font-mono text-sm bg-elevated border text-text-primary placeholder:text-text-secondary/50 outline-none focus:border-accent-active transition-colors"
             style={{
               borderColor: "var(--color-border)",
-              borderRadius: "6px",
+              borderRadius: "var(--radius-input)",
             }}
           />
           {error && (
-            <p className="text-sm mb-3" style={{ color: "var(--color-status-error)" }}>
+            <p className="text-sm mb-4" style={{ color: "var(--color-status-error)" }}>
               {error}
             </p>
           )}
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 font-body text-sm font-medium rounded-md transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 font-body text-sm font-medium transition-colors"
             style={{
-              background: "var(--color-accent-amber)",
+              background: "var(--color-accent-primary)",
               color: "var(--color-base)",
-              borderRadius: "6px",
+              borderRadius: "var(--radius-button)",
               opacity: loading ? 0.6 : 1,
             }}
           >

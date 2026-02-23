@@ -20,6 +20,10 @@ import {
   handleGetTasks,
   handleChat,
   handleCancelTask,
+  handleGetTools,
+  handleGetAgentTypes,
+  handleGetHeartbeatConfig,
+  handlePutHeartbeatConfig,
 } from "./api.ts";
 
 const UI_DIST_DIR = resolve(dirname(import.meta.path), "../../ui/dist");
@@ -146,6 +150,18 @@ export async function handleAdminRequest(
     const cancelMatch = path.match(/^\/admin\/api\/tasks\/([^/]+)\/cancel$/);
     if (req.method === "POST" && cancelMatch) {
       return handleCancelTask(cancelMatch[1], deps);
+    }
+    if (req.method === "GET" && path === "/admin/api/tools") {
+      return handleGetTools(deps);
+    }
+    if (req.method === "GET" && path === "/admin/api/agent-types") {
+      return handleGetAgentTypes(deps);
+    }
+    if (req.method === "GET" && path === "/admin/api/heartbeat") {
+      return handleGetHeartbeatConfig(deps);
+    }
+    if (req.method === "PUT" && path === "/admin/api/heartbeat") {
+      return handlePutHeartbeatConfig(req, deps);
     }
 
     return new Response(JSON.stringify({ error: "Not Found" }), {

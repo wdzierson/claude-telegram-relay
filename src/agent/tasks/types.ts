@@ -59,7 +59,12 @@ export interface TaskRunnerOptions {
   onIteration: (
     taskId: string,
     iteration: number,
-    tokenUsage: { input: number; output: number }
+    tokenUsage: { input: number; output: number },
+    iterationDetail?: {
+      toolName?: string;
+      thoughtText?: string;
+      toolCalls?: { name: string; inputPreview: string }[];
+    }
   ) => Promise<void>;
   /** Save conversation state for resumability */
   onSaveState?: (

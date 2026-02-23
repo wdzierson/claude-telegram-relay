@@ -1,26 +1,38 @@
 @import "tailwindcss";
 
 /* ============================================
-   DESIGN TOKENS — "Matte Industrial" theme
+   DESIGN TOKENS — "Frosted Glass" theme
    ============================================ */
 
 @theme {
-  --color-base: #121212;
-  --color-surface: #1a1a1a;
-  --color-elevated: #242424;
-  --color-border: #2e2e2e;
-  --color-border-active: #3d3d3d;
-  --color-text-primary: #e8e4dd;
-  --color-text-secondary: #8a8578;
-  --color-accent-amber: #d4a053;
-  --color-accent-copper: #c17f59;
-  --color-status-live: #5c9a6b;
-  --color-status-error: #b85c5c;
-  --color-status-idle: #6b6b6b;
-  --color-glass: rgba(26, 26, 26, 0.85);
+  --color-base: #1c1c1e;
+  --color-surface: #2c2c2e;
+  --color-elevated: #3a3a3c;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-active: rgba(255, 255, 255, 0.15);
+  --color-text-primary: #f0f0f0;
+  --color-text-secondary: #8e8e93;
+
+  --color-accent-primary: #FF6B8A;
+  --color-accent-active: #4ECDC4;
+
+  --color-status-live: #30D158;
+  --color-status-error: #FF453A;
+  --color-status-idle: #8e8e93;
+  --color-status-warning: #FF9F0A;
+  --color-status-info: #0A84FF;
+
+  --color-glass: rgba(44, 44, 46, 0.72);
+  --color-glass-border: rgba(255, 255, 255, 0.06);
 
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
-  --font-body: "DM Sans", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, sans-serif;
+
+  --radius-window: 16px;
+  --radius-card: 12px;
+  --radius-button: 8px;
+  --radius-input: 10px;
+  --radius-pill: 9999px;
 }
 
 /* ============================================
@@ -40,20 +52,10 @@ html, body, #root {
   background-color: var(--color-base);
   color: var(--color-text-primary);
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 300;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-}
-
-/* Noise texture overlay */
-#root::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 9999;
-  opacity: 0.025;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 /* ============================================
@@ -85,11 +87,11 @@ html, body, #root {
 @keyframes window-open {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: scale(0.96) translateY(4px);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: scale(1) translateY(0);
   }
 }
 
@@ -108,7 +110,7 @@ html, body, #root {
 }
 
 .animate-window-open {
-  animation: window-open 150ms ease-out;
+  animation: window-open 200ms ease-out;
 }
 
 .animate-window-close {
@@ -125,8 +127,9 @@ html, body, #root {
 
 .glass {
   background-color: var(--color-glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--color-glass-border);
 }
 
 .status-dot {
@@ -140,4 +143,5 @@ html, body, #root {
 .status-dot-live { background-color: var(--color-status-live); }
 .status-dot-error { background-color: var(--color-status-error); }
 .status-dot-idle { background-color: var(--color-status-idle); }
-.status-dot-amber { background-color: var(--color-accent-amber); }
+.status-dot-warning { background-color: var(--color-status-warning); }
+.status-dot-info { background-color: var(--color-status-info); }

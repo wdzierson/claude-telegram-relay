@@ -20,16 +20,18 @@ function StatusCard({ icon: Icon, label, value, color }: {
 }) {
   return (
     <div
-      className="flex items-center gap-3 p-3"
+      className="flex items-center gap-4 p-5"
       style={{
-        border: "1px solid var(--color-border)",
-        borderRadius: "2px",
-        background: "var(--color-elevated)",
+        border: "1px solid var(--color-glass-border)",
+        borderRadius: "var(--radius-card)",
+        background: "var(--color-glass)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
       }}
     >
       <Icon size={16} strokeWidth={1.5} style={{ color: color || "var(--color-text-secondary)" }} />
       <div>
-        <div className="text-[10px] font-body font-semibold uppercase tracking-widest text-text-secondary">
+        <div className="text-[10px] font-body font-medium uppercase tracking-widest text-text-secondary">
           {label}
         </div>
         <div className="font-mono text-sm text-text-primary">{value}</div>
@@ -69,7 +71,7 @@ function DashboardContent(_props: AppProps) {
   }
 
   return (
-    <div className="p-4 space-y-5">
+    <div className="p-5 space-y-5">
       {/* Status cards */}
       <div className="grid grid-cols-3 gap-3">
         <StatusCard
@@ -93,18 +95,19 @@ function DashboardContent(_props: AppProps) {
 
       {/* Active agents */}
       <section>
-        <h3 className="text-[10px] font-body font-semibold uppercase tracking-widest text-text-secondary mb-2">
+        <h3 className="text-[10px] font-body font-medium uppercase tracking-widest text-text-secondary mb-3">
           AGENTS
         </h3>
         <div
           className="divide-y"
           style={{
-            border: "1px solid var(--color-border)",
-            borderRadius: "2px",
+            border: "1px solid var(--color-glass-border)",
+            borderRadius: "var(--radius-card)",
+            overflow: "hidden",
           }}
         >
           {tasks.filter((t) => ["queued", "running", "waiting_user"].includes(t.status)).length === 0 && (
-            <div className="px-3 py-2 text-xs text-text-secondary">No active agents</div>
+            <div className="px-4 py-3 text-xs text-text-secondary">No active agents</div>
           )}
           {tasks
             .filter((t) => ["queued", "running", "waiting_user"].includes(t.status))
@@ -122,7 +125,7 @@ function DashboardContent(_props: AppProps) {
                         task.status === "running"
                           ? "var(--color-status-live)"
                           : task.status === "waiting_user"
-                          ? "var(--color-accent-amber)"
+                          ? "var(--color-status-warning)"
                           : "var(--color-status-idle)",
                     }}
                   />
@@ -140,17 +143,18 @@ function DashboardContent(_props: AppProps) {
 
       {/* Recent tasks */}
       <section>
-        <h3 className="text-[10px] font-body font-semibold uppercase tracking-widest text-text-secondary mb-2">
+        <h3 className="text-[10px] font-body font-medium uppercase tracking-widest text-text-secondary mb-3">
           RECENT TASKS
         </h3>
         <div
           style={{
-            border: "1px solid var(--color-border)",
-            borderRadius: "2px",
+            border: "1px solid var(--color-glass-border)",
+            borderRadius: "var(--radius-card)",
+            overflow: "hidden",
           }}
         >
           {tasks.filter((t) => ["completed", "failed"].includes(t.status)).length === 0 && (
-            <div className="px-3 py-2 text-xs text-text-secondary">No recent tasks</div>
+            <div className="px-4 py-3 text-xs text-text-secondary">No recent tasks</div>
           )}
           {tasks
             .filter((t) => ["completed", "failed"].includes(t.status))
@@ -185,7 +189,7 @@ function DashboardContent(_props: AppProps) {
 
       {/* Recent messages */}
       <section>
-        <h3 className="text-[10px] font-body font-semibold uppercase tracking-widest text-text-secondary mb-2">
+        <h3 className="text-[10px] font-body font-medium uppercase tracking-widest text-text-secondary mb-3">
           RECENT
         </h3>
         <div className="space-y-1">
@@ -197,7 +201,7 @@ function DashboardContent(_props: AppProps) {
               <span
                 className="font-mono text-[10px] shrink-0 pt-0.5 w-10"
                 style={{
-                  color: msg.role === "user" ? "var(--color-accent-amber)" : "var(--color-text-secondary)",
+                  color: msg.role === "user" ? "var(--color-accent-primary)" : "var(--color-text-secondary)",
                 }}
               >
                 {msg.role === "user" ? "You" : "Bright"}

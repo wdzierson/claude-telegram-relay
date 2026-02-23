@@ -14,14 +14,14 @@ export function TopBar() {
     <div
       className="flex items-center justify-between px-4 shrink-0 select-none"
       style={{
-        height: 32,
+        height: 40,
         background: "var(--color-surface)",
         borderBottom: "1px solid var(--color-border)",
       }}
     >
       <div className="flex items-center gap-2">
-        <Zap size={14} strokeWidth={1.5} className="text-accent-amber" />
-        <span className="font-mono text-xs font-medium text-text-primary">
+        <Zap size={16} strokeWidth={1.5} className="text-accent-primary" />
+        <span className="font-body text-sm font-medium text-text-primary">
           Bright OS
         </span>
       </div>

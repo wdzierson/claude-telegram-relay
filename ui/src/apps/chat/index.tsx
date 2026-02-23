@@ -99,11 +99,11 @@ function Chat(_props: AppProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Message thread */}
-      <div className="flex-1 overflow-y-auto px-4 py-3">
+      <div className="flex-1 overflow-y-auto px-5 py-4">
         {messages.length === 0 && !loading ? (
           /* Empty state */
           <div className="flex flex-col items-center justify-center h-full gap-3 text-text-secondary">
-            <Zap size={32} strokeWidth={1.5} className="text-accent-amber opacity-50" />
+            <Zap size={32} strokeWidth={1.5} className="text-accent-primary opacity-50" />
             <span className="text-sm font-body">Send a message to Bright</span>
           </div>
         ) : (
@@ -114,9 +114,9 @@ function Chat(_props: AppProps) {
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[80%] rounded-lg px-3 py-2 text-sm font-body ${
+                  className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm font-body ${
                     msg.role === "user"
-                      ? "bg-accent-amber/15 text-text-primary"
+                      ? "bg-accent-primary/15 text-text-primary"
                       : "bg-surface text-text-primary"
                   }`}
                 >
@@ -128,7 +128,7 @@ function Chat(_props: AppProps) {
                       {msg.taskIds.map((taskId) => (
                         <span
                           key={taskId}
-                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-accent-copper/20 text-accent-copper text-[10px] font-mono"
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-accent-active/15 text-accent-active text-[10px] font-mono"
                         >
                           <Zap size={10} strokeWidth={1.5} />
                           {taskId.slice(0, 8)}
@@ -147,7 +147,7 @@ function Chat(_props: AppProps) {
             {/* Loading indicator */}
             {loading && (
               <div className="flex justify-start">
-                <div className="max-w-[80%] rounded-lg px-3 py-2 text-sm font-body bg-surface text-text-secondary">
+                <div className="max-w-[80%] rounded-2xl px-4 py-3 text-sm font-body bg-surface text-text-secondary">
                   <div className="flex items-center gap-2">
                     <Loader size={14} strokeWidth={1.5} className="animate-spin" />
                     <span>Thinking...</span>
@@ -167,8 +167,8 @@ function Chat(_props: AppProps) {
       )}
 
       {/* Input area */}
-      <div className="shrink-0 px-4 pb-3 pt-2 border-t border-border">
-        <div className="flex items-end gap-2">
+      <div className="shrink-0 px-5 pb-4 pt-3 border-t border-border">
+        <div className="flex items-end gap-3">
           <textarea
             ref={textareaRef}
             value={input}
@@ -176,13 +176,13 @@ function Chat(_props: AppProps) {
             onKeyDown={handleKeyDown}
             placeholder="Message Bright..."
             rows={1}
-            className="flex-1 resize-none bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text-primary font-body placeholder:text-text-secondary/50 focus:outline-none focus:border-accent-amber transition-colors"
+            className="flex-1 resize-none bg-surface border border-border rounded-xl px-4 py-3 text-sm text-text-primary font-body placeholder:text-text-secondary/50 focus:outline-none focus:border-accent-active transition-colors"
             style={{ maxHeight: 120 }}
           />
           <button
             onClick={sendMessage}
             disabled={!input.trim() || loading}
-            className="p-2 rounded-lg bg-accent-amber text-base hover:bg-accent-amber/80 disabled:opacity-30 transition-colors shrink-0"
+            className="p-2.5 rounded-xl bg-accent-primary text-base hover:bg-accent-primary/80 disabled:opacity-30 transition-colors shrink-0"
           >
             <Send size={18} strokeWidth={1.5} />
           </button>

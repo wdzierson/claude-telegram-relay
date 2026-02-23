@@ -246,7 +246,9 @@ export function loadConfig(): Config {
   const mcpConfigPath = process.env.MCP_CONFIG_PATH;
   if (mcpConfigPath) {
     try {
-      const raw = readFileSync(mcpConfigPath, "utf-8");
+      const rawFile = readFileSync(mcpConfigPath, "utf-8");
+      // Substitute ${VAR_NAME} references with process.env values
+      const raw = rawFile.replace(/\$\{([^}]+)\}/g, (_, name) => process.env[name] ?? "");
       const parsed = JSON.parse(raw);
       const servers: MCPServerEntry[] = Array.isArray(parsed.servers)
         ? parsed.servers

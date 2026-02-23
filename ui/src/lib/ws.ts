@@ -9,6 +9,9 @@ export interface TaskEvent {
   error?: string | null;
   iteration?: number;
   tokenUsage?: { input: number; output: number };
+  toolName?: string;
+  thoughtText?: string;
+  toolCalls?: { name: string; inputPreview: string }[];
   timestamp: string;
 }
 

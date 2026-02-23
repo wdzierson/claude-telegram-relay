@@ -283,7 +283,7 @@ export class TaskQueue {
               timestamp: new Date().toISOString(),
             });
           },
-          onIteration: async (id, iteration, tokenUsage) => {
+          onIteration: async (id, iteration, tokenUsage, detail) => {
             await this.deps.supabaseClient
               .from("tasks")
               .update({
@@ -297,6 +297,9 @@ export class TaskQueue {
               taskId: id,
               iteration,
               tokenUsage,
+              toolName: detail?.toolName,
+              thoughtText: detail?.thoughtText,
+              toolCalls: detail?.toolCalls,
               timestamp: new Date().toISOString(),
             });
           },

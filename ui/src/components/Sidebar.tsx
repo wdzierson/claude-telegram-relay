@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   LayoutDashboard, Bot, MessageSquare, Wrench,
-  Settings, ScrollText, Plug, Brain, ChevronRight, Activity
+  Settings, ScrollText, Plug, Brain, ChevronRight, Activity, Puzzle
 } from "lucide-react";
 import type { BrightApp } from "../core/app-registry";
 
@@ -20,6 +20,7 @@ const ICON_MAP: Record<string, typeof LayoutDashboard> = {
   "plug": Plug,
   "brain": Brain,
   "activity": Activity,
+  "puzzle": Puzzle,
 };
 
 const CATEGORIES: { key: BrightApp["category"]; label: string }[] = [
@@ -38,7 +39,7 @@ export function Sidebar({ apps, onLaunch }: SidebarProps) {
     <div
       className="h-full flex flex-col border-r transition-all duration-200 shrink-0"
       style={{
-        width: isOpen ? 200 : 56,
+        width: isOpen ? 210 : 64,
         borderColor: "var(--color-border)",
         background: "var(--color-surface)",
       }}
@@ -48,7 +49,7 @@ export function Sidebar({ apps, onLaunch }: SidebarProps) {
       {/* Pin toggle */}
       {isOpen && (
         <button
-          className="flex items-center justify-end px-3 py-2 text-text-secondary hover:text-accent-amber transition-colors"
+          className="flex items-center justify-end px-3 py-2 text-text-secondary hover:text-accent-active transition-colors"
           onClick={() => setPinned((p) => !p)}
           title={pinned ? "Unpin sidebar" : "Pin sidebar"}
         >
@@ -76,21 +77,21 @@ export function Sidebar({ apps, onLaunch }: SidebarProps) {
                 return (
                   <button
                     key={app.id}
-                    className="w-full flex items-center gap-3 px-4 py-2 hover:bg-elevated transition-colors group relative"
+                    className="w-full flex items-center gap-3 px-5 py-3 rounded-lg hover:bg-elevated transition-colors group relative"
                     onClick={() => onLaunch(app.id)}
                     title={app.name}
                   >
                     <Icon
-                      size={18}
+                      size={20}
                       strokeWidth={1.5}
-                      className="text-text-secondary group-hover:text-accent-amber transition-colors shrink-0"
+                      className="text-text-secondary group-hover:text-accent-active transition-colors shrink-0"
                     />
                     {isOpen && (
                       <span className="text-sm text-text-primary truncate">
                         {app.name}
                       </span>
                     )}
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-0 group-hover:h-5 bg-accent-amber transition-all duration-200" />
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-0 group-hover:h-5 bg-accent-active rounded-full transition-all duration-200" />
                   </button>
                 );
               })}

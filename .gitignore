@@ -8,10 +8,14 @@ node_modules/
 # Bun
 bun.lockb
 
+# Claude Code local settings (contains tokens, never commit)
+.claude/settings.local.json
+
 # Personal config (keep examples, ignore actual)
 config/profile.md
 config/soul.md
 config/schedule.json
+config/mcp-servers.json
 
 # Runtime files
 *.lock

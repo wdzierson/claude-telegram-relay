@@ -70,6 +70,15 @@ export const api = {
     request<{ ok: boolean }>(`/tasks/${taskId}/cancel`, {
       method: "POST",
     }),
+
+  getTools: () => request<ToolsResponse>("/tools"),
+  getAgentTypes: () => request<AgentTypesResponse>("/agent-types"),
+  getHeartbeat: () => request<HeartbeatResponse>("/heartbeat"),
+  putHeartbeat: (config: Partial<HeartbeatResponse>) =>
+    request<{ success: boolean; restartRequired: boolean }>("/heartbeat", {
+      method: "PUT",
+      body: JSON.stringify(config),
+    }),
 };
 
 // Response types
@@ -128,6 +137,8 @@ export interface TaskRow {
   started_at?: string;
   completed_at?: string;
   parent_task_id?: string;
+  pending_question?: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface TasksResponse {
@@ -155,4 +166,31 @@ export interface McpCatalogResponse {
     args: string[];
     envVars?: string[];
   }[];
+}
+
+export interface ToolsResponse {
+  tools: {
+    name: string;
+    description: string;
+    scope: string;
+    category: string;
+    approval: string;
+  }[];
+}
+
+export interface AgentTypesResponse {
+  agentTypes: {
+    id: string;
+    name: string;
+    maxIterations: number;
+    model: string | null;
+  }[];
+}
+
+export interface HeartbeatResponse {
+  enabled: boolean;
+  checkinIntervalMs: number;
+  briefingHour: number;
+  activeStart: number;
+  activeEnd: number;
 }

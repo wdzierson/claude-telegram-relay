@@ -35,6 +35,7 @@ export interface AdminDeps {
   profile?: string;
   taskManager?: TaskManager | null;
   registry?: ToolRegistry | null;
+  agentTypes?: Map<string, import("../agent/tasks/agent-types.ts").AgentType> | null;
 }
 
 const json = (data: unknown, status = 200) =>
@@ -311,7 +312,7 @@ export async function handleGetTasks(
   let query = deps.supabaseClient
     .from("tasks")
     .select(
-      "id, status, description, result, error, priority, iteration_count, max_iterations, token_usage, created_at, updated_at, started_at, completed_at",
+      "id, status, description, result, error, priority, iteration_count, max_iterations, token_usage, created_at, updated_at, started_at, completed_at, parent_task_id, pending_question, metadata",
       { count: "exact" }
     )
     .order("created_at", { ascending: false })
@@ -387,4 +388,90 @@ export async function handleCancelTask(
     return json({ ok: true });
   }
   return json({ error: "Failed to cancel task" }, 500);
+}
+
+// ==================== Tools ====================
+
+export async function handleGetTools(deps: AdminDeps): Promise<Response> {
+  if (!deps.registry) {
+    return json({ tools: [] });
+  }
+
+  // Get all tools from the registry
+  const chatTools = deps.registry.getChatTools();
+  const bgTools = deps.registry.getBackgroundTools();
+
+  // Deduplicate (tools with scope "both" appear in both lists)
+  const seen = new Set<string>();
+  const tools: { name: string; description: string; scope: string; category: string; approval: string }[] = [];
+
+  for (const t of [...chatTools, ...bgTools]) {
+    if (seen.has(t.definition.name)) continue;
+    seen.add(t.definition.name);
+    tools.push({
+      name: t.definition.name,
+      description: (t.definition as any).description || "",
+      scope: t.scope,
+      category: t.category,
+      approval: t.approval,
+    });
+  }
+
+  return json({ tools });
+}
+
+// ==================== Agent Types ====================
+
+export async function handleGetAgentTypes(deps: AdminDeps): Promise<Response> {
+  if (!deps.agentTypes) {
+    return json({ agentTypes: [] });
+  }
+
+  const types = Array.from(deps.agentTypes.entries()).map(([id, t]) => ({
+    id,
+    name: t.name,
+    maxIterations: t.maxIterations,
+    model: t.model || null,
+  }));
+
+  return json({ agentTypes: types });
+}
+
+// ==================== Heartbeat Config ====================
+
+export async function handleGetHeartbeatConfig(deps: AdminDeps): Promise<Response> {
+  return json({
+    enabled: deps.config.heartbeat.enabled,
+    checkinIntervalMs: deps.config.heartbeat.checkinIntervalMs,
+    briefingHour: deps.config.heartbeat.briefingHour,
+    activeHoursStart: deps.config.heartbeat.activeHoursStart,
+    activeHoursEnd: deps.config.heartbeat.activeHoursEnd,
+  });
+}
+
+export async function handlePutHeartbeatConfig(req: Request, deps: AdminDeps): Promise<Response> {
+  try {
+    const body = await req.json();
+    const updates: { key: string; value: string }[] = [];
+
+    if (body.enabled !== undefined) updates.push({ key: "HEARTBEAT_ENABLED", value: String(body.enabled) });
+    if (body.checkinIntervalMs !== undefined) updates.push({ key: "HEARTBEAT_CHECKIN_INTERVAL_MS", value: String(body.checkinIntervalMs) });
+    if (body.briefingHour !== undefined) updates.push({ key: "HEARTBEAT_BRIEFING_HOUR", value: String(body.briefingHour) });
+    if (body.activeHoursStart !== undefined) updates.push({ key: "HEARTBEAT_ACTIVE_START", value: String(body.activeHoursStart) });
+    if (body.activeHoursEnd !== undefined) updates.push({ key: "HEARTBEAT_ACTIVE_END", value: String(body.activeHoursEnd) });
+
+    if (updates.length === 0) {
+      return json({ error: "No valid fields provided" }, 400);
+    }
+
+    let entries = parseEnvFile(deps.envFilePath);
+    for (const { key, value } of updates) {
+      entries = setEnvValue(entries, key, value);
+    }
+    writeEnvFile(deps.envFilePath, entries);
+
+    return json({ success: true, restartRequired: true });
+  } catch (err: any) {
+    return json({ error: err.message }, 400);
+  }
 }

@@ -86,9 +86,36 @@ export async function runTask(options: TaskRunnerOptions): Promise<string> {
 
       totalInput += response.usage.input_tokens;
       totalOutput += response.usage.output_tokens;
+
+      // Extract iteration detail for broadcast
+      let lastToolName: string | undefined;
+      const thoughtParts: string[] = [];
+      const toolCalls: { name: string; inputPreview: string }[] = [];
+
+      for (const block of response.content) {
+        if (block.type === "text" && block.text) {
+          thoughtParts.push(block.text);
+        }
+        if (block.type === "tool_use") {
+          lastToolName = block.name;
+          // Truncate tool input to keep broadcasts manageable
+          const inputStr = JSON.stringify(block.input);
+          toolCalls.push({
+            name: block.name,
+            inputPreview: inputStr.length > 200 ? inputStr.slice(0, 200) + "..." : inputStr,
+          });
+        }
+      }
+
+      const thoughtText = thoughtParts.join("\n").trim();
+
       await onIteration(task.id, iteration, {
         input: totalInput,
         output: totalOutput,
+      }, {
+        toolName: lastToolName,
+        thoughtText: thoughtText.length > 500 ? thoughtText.slice(0, 500) + "..." : thoughtText || undefined,
+        toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
       });
 
       // Process content blocks

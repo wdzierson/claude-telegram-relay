@@ -143,6 +143,7 @@ if (config.server) {
     profile,
     taskManager: taskManager || null,
     registry: registry || null,
+    agentTypes,
   };
 
   phoneServer = startHTTPServer({
