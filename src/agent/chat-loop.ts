@@ -19,6 +19,7 @@ export interface ChatLoopOptions {
   config: AnthropicConfig;
   registry: ToolRegistry;
   requestApproval?: ApprovalCallback;
+  imageBase64?: { data: string; mediaType: string };
 }
 
 export interface ChatLoopResult {
@@ -67,8 +68,24 @@ export async function runChatLoop(
     chatTools.map((t) => [t.definition.name, t])
   );
 
+  // Build first message — text only, or image + text for vision
+  const userContent: Anthropic.Messages.ContentBlockParam[] = [];
+
+  if (options.imageBase64) {
+    userContent.push({
+      type: 'image',
+      source: {
+        type: 'base64',
+        media_type: options.imageBase64.mediaType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+        data: options.imageBase64.data,
+      },
+    });
+  }
+
+  userContent.push({ type: 'text', text: userMessage });
+
   const messages: Anthropic.Messages.MessageParam[] = [
-    { role: "user", content: userMessage },
+    { role: "user", content: userContent },
   ];
 
   let totalInput = 0;
