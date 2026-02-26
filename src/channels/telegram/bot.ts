@@ -7,8 +7,6 @@
  */
 
 import { Bot, InlineKeyboard } from "grammy";
-import { writeFile, unlink } from "fs/promises";
-import { join } from "path";
 import type { Config } from "../../config/index.ts";
 import type { MemorySystem } from "../../memory/index.ts";
 import type { IncomingMessage, AgentResponse } from "../../agent/index.ts";
@@ -26,15 +24,17 @@ import type { ApprovalCallback } from "../../tools/types.ts";
 import { MCPClientManager, importMCPTools } from "../../tools/mcp/index.ts";
 import type { MCPServerConfig } from "../../tools/mcp/index.ts";
 import { FileStore } from "../../utils/file-store.ts";
+import { extractText } from "../../utils/extract.ts";
 import { createLogger } from "../../utils/logger.ts";
 
 /**
- * Build an inline keyboard with Cancel buttons for spawned tasks.
+ * Build an inline keyboard with Cancel and Redirect buttons for spawned tasks.
  */
 function taskKeyboard(taskIds: string[]): InlineKeyboard | undefined {
   if (!taskIds.length) return undefined;
   const kb = new InlineKeyboard();
   for (const id of taskIds) {
+    kb.text(`↩ Redirect ${id.substring(0, 6)}`, `task_redirect:${id}`);
     kb.text(`Cancel task ${id.substring(0, 8)}`, `task_cancel:${id}`);
     kb.row();
   }
@@ -58,6 +58,12 @@ export async function createBot(
   const bot = new Bot(config.telegram.botToken);
   const primaryUserId = config.telegram.allowedUserIds[0];
   const log = createLogger(memory.client);
+
+  // --- File Store for persistent uploads ---
+  let fileStore: FileStore | null = null;
+  if (memory.client && config.supabase?.url) {
+    fileStore = new FileStore(memory.client, config.supabase.url);
+  }
 
   // --- Tool Registry ---
   const registry = new ToolRegistry();
@@ -115,6 +121,10 @@ export async function createBot(
 
     return promise;
   };
+
+  // --- Pending Redirects (interrupt-with-new-instruction flow) ---
+  const pendingRedirects = new Map<string, string>();
+  // Key: "__next" → Value: taskId waiting for redirect text
 
   // --- Pending Questions (ask_user mid-task flow) ---
   const pendingQuestions = new Map<string, {
@@ -250,6 +260,15 @@ export async function createBot(
   bot.on("callback_query:data", async (ctx) => {
     const data = ctx.callbackQuery.data;
 
+    // Task redirect buttons
+    if (data.startsWith("task_redirect:") && taskQueue) {
+      const taskId = data.replace("task_redirect:", "");
+      pendingRedirects.set("__next", taskId);
+      await ctx.answerCallbackQuery({ text: "Type your redirect message below" });
+      await ctx.editMessageReplyMarkup({ reply_markup: undefined }).catch(() => {});
+      return;
+    }
+
     // Task cancel buttons
     if (data.startsWith("task_cancel:") && taskManager) {
       const taskId = data.replace("task_cancel:", "");
@@ -343,10 +362,60 @@ export async function createBot(
     await sendResponse(ctx, response.text, kb ? { reply_markup: kb } : undefined);
   }
 
+  /** Save an attachment record to Supabase after a file upload */
+  async function saveAttachment(opts: {
+    userId?: string;
+    fileType: "image" | "document" | "audio" | "video";
+    mimeType: string;
+    originalFilename: string;
+    storageUrl: string;
+    description?: string;
+    extractedText?: string;
+    fileSize: number;
+  }): Promise<void> {
+    if (!memory.client) return;
+    try {
+      // Link to the most recent message saved for this interaction
+      const { data: recentMsg } = await memory.client
+        .from("messages")
+        .select("id")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      await memory.client.from("attachments").insert({
+        message_id: recentMsg?.id || null,
+        user_id: opts.userId,
+        file_type: opts.fileType,
+        mime_type: opts.mimeType,
+        original_filename: opts.originalFilename,
+        storage_url: opts.storageUrl,
+        description: opts.description,
+        extracted_text: opts.extractedText?.substring(0, 50000) || null,
+        file_size_bytes: opts.fileSize,
+      });
+    } catch (err) {
+      console.error("Failed to save attachment:", err);
+    }
+  }
+
   // Text messages
   bot.on("message:text", async (ctx) => {
     const text = ctx.message.text;
     log.info("bot", "text_received", { preview: text.substring(0, 50) });
+
+    // Check for pending redirect
+    if (pendingRedirects.has("__next")) {
+      const taskId = pendingRedirects.get("__next")!;
+      pendingRedirects.delete("__next");
+      const ok = await taskQueue?.interrupt(taskId, text);
+      if (ok) {
+        await ctx.reply(`↩ Redirect sent to task ${taskId.substring(0, 8)}. The agent will adjust on its next iteration.`);
+      } else {
+        await ctx.reply(`Could not redirect — task ${taskId.substring(0, 8)} is not currently running.`);
+      }
+      return;
+    }
 
     // Check if this is an answer to a pending task question
     if (pendingQuestions.size > 0) {
@@ -399,6 +468,12 @@ export async function createBot(
       const resp = await fetch(url);
       const buffer = Buffer.from(await resp.arrayBuffer());
 
+      // Upload voice note to Supabase Storage for persistence
+      const voiceFilename = `voice_${Date.now()}.ogg`;
+      const voiceStorageUrl = fileStore
+        ? await fileStore.uploadBuffer(buffer, voiceFilename, "audio/ogg")
+        : null;
+
       const transcription = await transcribe(buffer, config.voice);
       if (!transcription) {
         await ctx.reply("Could not transcribe voice message.");
@@ -433,6 +508,20 @@ export async function createBot(
 
       // Always send text too
       await sendAgentResponse(ctx, reply);
+
+      // Persist voice attachment with transcription as extracted text
+      if (voiceStorageUrl) {
+        await saveAttachment({
+          userId: ctx.from?.id.toString(),
+          fileType: "audio",
+          mimeType: "audio/ogg",
+          originalFilename: voiceFilename,
+          storageUrl: voiceStorageUrl,
+          description: `Voice message: ${transcription.substring(0, 200)}`,
+          extractedText: transcription,
+          fileSize: buffer.length,
+        });
+      }
     } catch (error) {
       log.error("bot", "voice_error", { error: String(error) });
       await ctx.reply("Could not process voice message. Check logs for details.");
@@ -441,31 +530,38 @@ export async function createBot(
     }
   });
 
-  // Photos
+  // Photos (includes screenshots — always request highest resolution)
   bot.on("message:photo", async (ctx) => {
     log.info("bot", "photo_received");
 
     const stopTyping = startTyping(ctx);
     try {
       const photos = ctx.message.photo;
-      const photo = photos[photos.length - 1];
+      const photo = photos[photos.length - 1]; // Highest resolution available
       const file = await ctx.api.getFile(photo.file_id);
 
-      const timestamp = Date.now();
-      const filePath = join(config.paths.uploadsDir, `image_${timestamp}.jpg`);
-
+      // Download as buffer — no temp file needed
       const resp = await fetch(
         `https://api.telegram.org/file/bot${config.telegram.botToken}/${file.file_path}`
       );
-      const buffer = await resp.arrayBuffer();
-      await writeFile(filePath, Buffer.from(buffer));
+      const buffer = Buffer.from(await resp.arrayBuffer());
+      const mimeType = file.file_path?.endsWith(".png") ? "image/png" : "image/jpeg";
+      const filename = `image_${Date.now()}.${mimeType === "image/png" ? "png" : "jpg"}`;
+
+      // Upload to Supabase Storage for long-term persistence
+      const storageUrl = fileStore
+        ? await fileStore.uploadBuffer(buffer, filename, mimeType)
+        : null;
 
       const caption = ctx.message.caption || "Analyze this image.";
 
       const incoming: IncomingMessage = {
         type: "photo",
         text: caption,
-        filePath,
+        fileBuffer: buffer,
+        fileUrl: storageUrl || undefined,
+        mimeType,
+        originalFilename: filename,
         userId: ctx.from?.id.toString(),
       };
 
@@ -473,8 +569,18 @@ export async function createBot(
         incoming, config, memory, profile, taskManager, registry, requestApproval, agentTypeNames
       );
 
-      // Cleanup temp file
-      await unlink(filePath).catch(() => {});
+      // Persist attachment record with Claude's description
+      if (storageUrl) {
+        await saveAttachment({
+          userId: ctx.from?.id.toString(),
+          fileType: "image",
+          mimeType,
+          originalFilename: filename,
+          storageUrl,
+          description: reply.text.substring(0, 2000),
+          fileSize: buffer.length,
+        });
+      }
 
       await sendAgentResponse(ctx, reply);
     } catch (error) {
@@ -485,30 +591,52 @@ export async function createBot(
     }
   });
 
-  // Documents
+  // Documents (PDF, Word, text files, and audio files sent as documents)
   bot.on("message:document", async (ctx) => {
     const doc = ctx.message.document;
-    log.info("bot", "document_received", { filename: doc.file_name });
+    log.info("bot", "document_received", { filename: doc.file_name, mimeType: doc.mime_type });
 
     const stopTyping = startTyping(ctx);
     try {
       const file = await ctx.getFile();
-      const timestamp = Date.now();
-      const fileName = doc.file_name || `file_${timestamp}`;
-      const filePath = join(config.paths.uploadsDir, `${timestamp}_${fileName}`);
-
       const resp = await fetch(
         `https://api.telegram.org/file/bot${config.telegram.botToken}/${file.file_path}`
       );
-      const buffer = await resp.arrayBuffer();
-      await writeFile(filePath, Buffer.from(buffer));
+      const buffer = Buffer.from(await resp.arrayBuffer());
+      const mimeType = doc.mime_type || "application/octet-stream";
+      const filename = doc.file_name || `file_${Date.now()}`;
+      const caption = ctx.message.caption || "";
 
-      const caption = ctx.message.caption || `Analyze: ${doc.file_name}`;
+      // Upload to Supabase Storage for long-term persistence
+      const storageUrl = fileStore
+        ? await fileStore.uploadBuffer(buffer, filename, mimeType)
+        : null;
+
+      // Extract text: transcribes audio, parses PDFs/Word/text
+      const extractedText = await extractText(buffer, mimeType, config.voice);
+
+      // Categorise for the attachments table
+      const isAudio = mimeType.startsWith("audio/");
+      const fileType: "image" | "document" | "audio" | "video" = isAudio ? "audio" : "document";
+
+      // Build message text from extracted content + caption
+      let messageText = caption || `Analyze: ${filename}`;
+      if (extractedText) {
+        const preview = extractedText.substring(0, 8000);
+        if (isAudio) {
+          messageText = `[Audio file "${filename}" transcribed]: ${preview}\n\n${caption || "Respond to this audio."}`;
+        } else {
+          messageText = `[Document "${filename}" content]:\n${preview}\n\n${caption || "Analyze this document."}`;
+        }
+      }
 
       const incoming: IncomingMessage = {
         type: "document",
-        text: caption,
-        filePath,
+        text: messageText,
+        fileBuffer: buffer,
+        fileUrl: storageUrl || undefined,
+        mimeType,
+        originalFilename: filename,
         userId: ctx.from?.id.toString(),
       };
 
@@ -516,7 +644,19 @@ export async function createBot(
         incoming, config, memory, profile, taskManager, registry, requestApproval, agentTypeNames
       );
 
-      await unlink(filePath).catch(() => {});
+      // Persist attachment record
+      if (storageUrl) {
+        await saveAttachment({
+          userId: ctx.from?.id.toString(),
+          fileType,
+          mimeType,
+          originalFilename: filename,
+          storageUrl,
+          description: reply.text.substring(0, 2000),
+          extractedText: extractedText || undefined,
+          fileSize: buffer.length,
+        });
+      }
 
       await sendAgentResponse(ctx, reply);
     } catch (error) {
