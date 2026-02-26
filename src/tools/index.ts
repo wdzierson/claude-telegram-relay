@@ -17,6 +17,7 @@ import { createMemorySearchTool } from "./builtin/memory-search.ts";
 import { createDateTimeTool } from "./builtin/datetime.ts";
 import { createFetchUrlTool } from "./builtin/fetch-url.ts";
 import { createConversationSearchTool } from "./builtin/conversation-search.ts";
+import { createAttachmentSearchTool } from "./builtin/attachment-search.ts";
 
 /**
  * Create all applicable built-in tools based on config.
@@ -30,6 +31,7 @@ export function createBuiltinTools(config: Config, memory: MemorySystem): ChatTo
   tools.push(createFetchUrlTool());
   tools.push(createMemorySearchTool(memory));
   tools.push(createConversationSearchTool(memory));
+  tools.push(createAttachmentSearchTool(memory));
 
   // Requires location config
   if (config.location) {
