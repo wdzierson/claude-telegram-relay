@@ -20,17 +20,35 @@ function getClient(config: AnthropicConfig): Anthropic {
 export async function callAnthropicAPI(
   systemPrompt: string,
   userMessage: string,
-  config: AnthropicConfig
+  config: AnthropicConfig,
+  imageBase64?: { data: string; mediaType: string }
 ): Promise<string> {
   console.log(`Calling Anthropic API: ${userMessage.substring(0, 50)}...`);
 
   try {
     const anthropic = getClient(config);
+
+    // Build content blocks — text only, or image + text for vision
+    const content: Anthropic.Messages.ContentBlockParam[] = [];
+
+    if (imageBase64) {
+      content.push({
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: imageBase64.mediaType as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
+          data: imageBase64.data,
+        },
+      });
+    }
+
+    content.push({ type: "text", text: userMessage });
+
     const response = await anthropic.messages.create({
       model: config.model,
       max_tokens: config.maxTokens,
       system: systemPrompt,
-      messages: [{ role: "user", content: userMessage }],
+      messages: [{ role: "user", content }],
     });
 
     const block = response.content[0];
