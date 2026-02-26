@@ -52,7 +52,8 @@ export function createAttachmentSearchTool(memory: MemorySystem): ChatTool {
 
         if (error) {
           console.warn("Attachment search error:", error);
-          return "Attachment search failed.";
+          const msg = error?.message || String(error);
+          return `Attachment search failed: ${msg}`;
         }
 
         if (!data?.length) {
