@@ -31,7 +31,11 @@ function timeAgo(dateStr?: string): string {
 export interface IncomingMessage {
   type: "text" | "voice" | "photo" | "document";
   text: string; // Original text, transcription, or caption
-  filePath?: string; // For images/documents
+  filePath?: string; // For images/documents (local temp path, legacy)
+  fileBuffer?: Buffer; // Raw file data for vision / extraction
+  fileUrl?: string; // Supabase Storage persistent URL
+  mimeType?: string; // e.g. "image/jpeg", "application/pdf"
+  originalFilename?: string; // Original filename from Telegram
   userId?: string; // Telegram user ID (for multi-user)
   metadata?: Record<string, unknown>;
 }
@@ -104,14 +108,24 @@ export async function handleMessage(
     ? rawRecentMessages.replace("RECENT CONVERSATION:", "RECENT ACTIVITY (Telegram & other channels):")
     : rawRecentMessages;
 
-  // Build the prompt
+  // Build the prompt text and optional image content for vision
   let promptText = message.text;
+  let imageBase64: { data: string; mediaType: string } | undefined;
+
   if (message.type === "voice") {
     promptText = `[Voice message transcribed]: ${message.text}`;
-  } else if (message.type === "photo" && message.filePath) {
-    promptText = `[Image: ${message.filePath}]\n\n${message.text}`;
-  } else if (message.type === "document" && message.filePath) {
-    promptText = `[File: ${message.filePath}]\n\n${message.text}`;
+  } else if (message.type === "photo") {
+    // Image sent as a vision content block when buffer is available
+    if (message.fileBuffer && message.mimeType) {
+      imageBase64 = {
+        data: message.fileBuffer.toString("base64"),
+        mediaType: message.mimeType,
+      };
+    }
+    promptText = message.text || "Analyze this image.";
+  } else if (message.type === "document") {
+    // Extracted text is already in message.text from the bot handler
+    promptText = message.text;
   }
 
   // Collect available tool names for prompt context
@@ -153,6 +167,7 @@ export async function handleMessage(
         config: effectiveConfig,
         registry,
         requestApproval,
+        imageBase64,
       });
       rawResponse = result.text;
       images = result.images;
@@ -161,7 +176,8 @@ export async function handleMessage(
       rawResponse = await callAnthropicAPI(
         prompt.system,
         prompt.user,
-        effectiveConfig
+        effectiveConfig,
+        imageBase64
       );
     }
   } else {
