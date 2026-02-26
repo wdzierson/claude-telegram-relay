@@ -97,10 +97,8 @@ export class FileStore {
     contentType: string
   ): Promise<string | null> {
     try {
-      const ext = filename.includes(".") ? filename.substring(filename.lastIndexOf(".")) : "";
-      const baseName = filename.includes(".")
-        ? filename.substring(0, filename.lastIndexOf("."))
-        : filename;
+      const ext = extname(filename).toLowerCase();
+      const baseName = basename(filename, ext);
       const storagePath = `${Date.now()}_${baseName}${ext}`;
 
       const { error } = await this.supabaseClient.storage
