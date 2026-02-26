@@ -1,7 +1,7 @@
 /**
  * Auto-Embedding Edge Function
  *
- * Called via database webhook on INSERT to messages/memory tables.
+ * Called via database webhook on INSERT to messages/memory/attachments tables.
  * Generates an OpenAI embedding and stores it on the row.
  *
  * Secrets required:
@@ -16,13 +16,41 @@ Deno.serve(async (req) => {
   try {
     const { record, table } = await req.json();
 
-    if (!record?.content || !record?.id) {
-      return new Response("Missing record data", { status: 400 });
+    if (!record?.id) {
+      return new Response("Missing record id", { status: 400 });
+    }
+
+    // For attachments, content lives in description + extracted_text
+    // For messages and memory, content lives in record.content
+    if (table === "attachments") {
+      if (!record?.description && !record?.extracted_text) {
+        return new Response("No text to embed for attachment", { status: 200 });
+      }
+    } else {
+      if (!record?.content) {
+        return new Response("Missing content", { status: 400 });
+      }
     }
 
     // Skip if embedding already exists
     if (record.embedding) {
       return new Response("Already embedded", { status: 200 });
+    }
+
+    // Determine text to embed based on table
+    let textToEmbed: string;
+    if (table === "attachments") {
+      const desc = (record.description as string) || "";
+      const extracted = (record.extracted_text as string) || "";
+      textToEmbed = `${desc}\n${extracted}`.trim().substring(0, 8000);
+      if (!textToEmbed) {
+        return new Response("No text to embed for attachment", { status: 200 });
+      }
+    } else {
+      textToEmbed = record.content as string;
+      if (!textToEmbed) {
+        return new Response("Missing content", { status: 400 });
+      }
     }
 
     const openaiKey = Deno.env.get("OPENAI_API_KEY");
@@ -41,7 +69,7 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           model: "text-embedding-3-small",
-          input: record.content,
+          input: textToEmbed,
         }),
       }
     );

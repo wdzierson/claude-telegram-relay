@@ -1,12 +1,12 @@
 /**
  * Semantic Search Edge Function
  *
- * Generates an embedding for the query, then calls match_messages or
- * match_memory to find similar rows. This keeps the OpenAI key in Supabase
- * so the relay never needs it.
+ * Generates an embedding for the query, then calls match_messages,
+ * match_memory, or match_attachments to find similar rows. This keeps
+ * the OpenAI key in Supabase so the relay never needs it.
  *
  * POST body:
- *   { query: string, table?: "messages" | "memory", match_count?: number, match_threshold?: number }
+ *   { query: string, table?: "messages" | "memory" | "attachments", match_count?: number, match_threshold?: number }
  *
  * Returns: array of matching rows with similarity scores.
  */
@@ -61,21 +61,40 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const rpcName = table === "memory" ? "match_memory" : "match_messages";
+    const matchThreshold = match_threshold;
+    const matchCount = match_count;
 
-    const { data: results, error } = await supabase.rpc(rpcName, {
-      query_embedding: embedding,
-      match_threshold,
-      match_count,
-    });
-
-    if (error) {
-      return new Response(`Search error: ${error.message}`, { status: 500 });
+    if (table === "memory") {
+      const { data: results, error } = await supabase.rpc("match_memory", {
+        query_embedding: embedding,
+        match_threshold: matchThreshold,
+        match_count: matchCount,
+      });
+      if (error) throw error;
+      return new Response(JSON.stringify(results || []), {
+        headers: { "Content-Type": "application/json" },
+      });
+    } else if (table === "attachments") {
+      const { data: results, error } = await supabase.rpc("match_attachments", {
+        query_embedding: embedding,
+        match_threshold: matchThreshold,
+        match_count: matchCount,
+      });
+      if (error) throw error;
+      return new Response(JSON.stringify(results || []), {
+        headers: { "Content-Type": "application/json" },
+      });
+    } else {
+      const { data: results, error } = await supabase.rpc("match_messages", {
+        query_embedding: embedding,
+        match_threshold: matchThreshold,
+        match_count: matchCount,
+      });
+      if (error) throw error;
+      return new Response(JSON.stringify(results || []), {
+        headers: { "Content-Type": "application/json" },
+      });
     }
-
-    return new Response(JSON.stringify(results || []), {
-      headers: { "Content-Type": "application/json" },
-    });
   } catch (error) {
     return new Response(String(error), { status: 500 });
   }
