@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, Clock, MessageSquare, Zap } from "lucide-react";
+import { Activity, CheckCircle2, Clock, MessageSquare, Zap } from "lucide-react";
 import type { BrightApp, AppProps } from "../../core/app-registry";
 import { api, type StatusResponse, type TasksResponse, type MessagesResponse } from "../../lib/api";
 
@@ -20,14 +20,7 @@ function StatusCard({ icon: Icon, label, value, color }: {
 }) {
   return (
     <div
-      className="flex items-center gap-4 p-5"
-      style={{
-        border: "1px solid var(--color-glass-border)",
-        borderRadius: "var(--radius-card)",
-        background: "var(--color-glass)",
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
-      }}
+      className="card flex items-center gap-4 px-6 py-7"
     >
       <Icon size={16} strokeWidth={1.5} style={{ color: color || "var(--color-text-secondary)" }} />
       <div>
@@ -71,7 +64,7 @@ function DashboardContent(_props: AppProps) {
   }
 
   return (
-    <div className="p-5 space-y-5">
+    <div className="p-5 space-y-5 overflow-y-auto h-full">
       {/* Status cards */}
       <div className="grid grid-cols-3 gap-3">
         <StatusCard
@@ -95,123 +88,115 @@ function DashboardContent(_props: AppProps) {
 
       {/* Active agents */}
       <section>
-        <h3 className="text-[10px] font-body font-medium uppercase tracking-widest text-text-secondary mb-3">
-          AGENTS
-        </h3>
-        <div
-          className="divide-y"
-          style={{
-            border: "1px solid var(--color-glass-border)",
-            borderRadius: "var(--radius-card)",
-            overflow: "hidden",
-          }}
-        >
-          {tasks.filter((t) => ["queued", "running", "waiting_user"].includes(t.status)).length === 0 && (
-            <div className="px-4 py-3 text-xs text-text-secondary">No active agents</div>
-          )}
-          {tasks
-            .filter((t) => ["queued", "running", "waiting_user"].includes(t.status))
-            .map((task) => (
-              <div
-                key={task.id}
-                className="flex items-center justify-between px-3 py-2"
-                style={{ borderColor: "var(--color-border)" }}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <span
-                    className="status-dot"
-                    style={{
-                      backgroundColor:
-                        task.status === "running"
-                          ? "var(--color-status-live)"
-                          : task.status === "waiting_user"
-                          ? "var(--color-status-warning)"
+        <div className="flex items-center gap-2 mt-1 mb-2 py-1.5">
+          <Activity size={13} strokeWidth={1.5} style={{ color: "var(--color-accent-active)", flexShrink: 0 }} />
+          <h3 className="section-label">Active Agents</h3>
+        </div>
+        <div className="card-bordered">
+          {tasks.filter((t) => ["queued", "running", "waiting_user"].includes(t.status)).length === 0 ? (
+            <div className="list-row-md flex items-center" style={{ paddingLeft: 20, paddingRight: 20 }}>
+              <span className="text-xs text-text-secondary">No active agents</span>
+            </div>
+          ) : tasks
+              .filter((t) => ["queued", "running", "waiting_user"].includes(t.status))
+              .map((task) => (
+                <div
+                  key={task.id}
+                  className="list-row flex items-center justify-between border-b last:border-b-0"
+                  style={{ paddingLeft: 20, paddingRight: 20, borderColor: "var(--color-border)" }}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span
+                      className="status-dot shrink-0"
+                      style={{
+                        backgroundColor:
+                          task.status === "running" ? "var(--color-status-live)"
+                          : task.status === "waiting_user" ? "var(--color-status-warning)"
                           : "var(--color-status-idle)",
-                    }}
-                  />
-                  <span className="text-sm text-text-primary truncate">
-                    {task.description}
+                      }}
+                    />
+                    <span className="text-sm text-text-primary truncate">{task.description}</span>
+                  </div>
+                  <span className="font-mono text-xs text-text-secondary shrink-0 ml-3">
+                    {task.iteration_count}/{task.max_iterations}
                   </span>
                 </div>
-                <span className="font-mono text-xs text-text-secondary shrink-0 ml-2">
-                  {task.iteration_count}/{task.max_iterations}
-                </span>
-              </div>
-            ))}
+              ))
+          }
         </div>
       </section>
 
       {/* Recent tasks */}
       <section>
-        <h3 className="text-[10px] font-body font-medium uppercase tracking-widest text-text-secondary mb-3">
-          RECENT TASKS
-        </h3>
-        <div
-          style={{
-            border: "1px solid var(--color-glass-border)",
-            borderRadius: "var(--radius-card)",
-            overflow: "hidden",
-          }}
-        >
-          {tasks.filter((t) => ["completed", "failed"].includes(t.status)).length === 0 && (
-            <div className="px-4 py-3 text-xs text-text-secondary">No recent tasks</div>
-          )}
-          {tasks
-            .filter((t) => ["completed", "failed"].includes(t.status))
-            .slice(0, 5)
-            .map((task) => (
-              <div
-                key={task.id}
-                className="flex items-center justify-between px-3 py-2 border-b last:border-b-0"
-                style={{ borderColor: "var(--color-border)" }}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <span
-                    className="status-dot"
-                    style={{
-                      backgroundColor:
-                        task.status === "completed"
-                          ? "var(--color-status-live)"
-                          : "var(--color-status-error)",
-                    }}
-                  />
-                  <span className="text-sm text-text-primary truncate">
-                    {task.description}
+        <div className="flex items-center gap-2 mt-1 mb-2 py-1.5">
+          <CheckCircle2 size={13} strokeWidth={1.5} style={{ color: "var(--color-text-secondary)", flexShrink: 0 }} />
+          <h3 className="section-label">Recent Tasks</h3>
+        </div>
+        <div className="card-bordered">
+          {tasks.filter((t) => ["completed", "failed"].includes(t.status)).length === 0 ? (
+            <div className="list-row-md flex items-center" style={{ paddingLeft: 20, paddingRight: 20 }}>
+              <span className="text-xs text-text-secondary">No recent tasks</span>
+            </div>
+          ) : tasks
+              .filter((t) => ["completed", "failed"].includes(t.status))
+              .slice(0, 5)
+              .map((task) => (
+                <div
+                  key={task.id}
+                  className="list-row flex items-center justify-between border-b last:border-b-0"
+                  style={{ paddingLeft: 20, paddingRight: 20, borderColor: "var(--color-border)" }}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span
+                      className="status-dot shrink-0"
+                      style={{
+                        backgroundColor:
+                          task.status === "completed" ? "var(--color-status-live)" : "var(--color-status-error)",
+                      }}
+                    />
+                    <span className="text-sm text-text-primary truncate">{task.description}</span>
+                  </div>
+                  <span className="font-mono text-xs text-text-secondary shrink-0 ml-3">
+                    {new Date(task.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>
-                <span className="font-mono text-xs text-text-secondary shrink-0 ml-2">
-                  {new Date(task.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </span>
-              </div>
-            ))}
+              ))
+          }
         </div>
       </section>
 
       {/* Recent messages */}
       <section>
-        <h3 className="text-[10px] font-body font-medium uppercase tracking-widest text-text-secondary mb-3">
-          RECENT
-        </h3>
-        <div className="space-y-1">
+        <div className="flex items-center gap-2 mt-1 mb-2 py-1.5">
+          <MessageSquare size={13} strokeWidth={1.5} style={{ color: "var(--color-text-secondary)", flexShrink: 0 }} />
+          <h3 className="section-label">Recent Messages</h3>
+        </div>
+        <div className="card-bordered">
           {messages.slice(0, 8).map((msg) => (
-            <div key={msg.id} className="flex items-start gap-2 py-1">
-              <span className="font-mono text-[10px] text-text-secondary shrink-0 pt-0.5">
+            <div
+              key={msg.id}
+              className="list-row-md flex items-start gap-3 border-b last:border-b-0"
+              style={{ paddingLeft: 20, paddingRight: 20, borderColor: "var(--color-border)" }}
+            >
+              <span className="font-mono text-[10px] text-text-secondary shrink-0 pt-px w-10">
                 {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </span>
               <span
-                className="font-mono text-[10px] shrink-0 pt-0.5 w-10"
-                style={{
-                  color: msg.role === "user" ? "var(--color-accent-primary)" : "var(--color-text-secondary)",
-                }}
+                className="font-mono text-[10px] shrink-0 pt-px w-8"
+                style={{ color: msg.role === "user" ? "var(--color-accent-primary)" : "var(--color-text-secondary)" }}
               >
-                {msg.role === "user" ? "You" : "Bright"}
+                {msg.role === "user" ? "You" : "AI"}
               </span>
-              <span className="text-sm text-text-primary truncate">
-                {msg.content.slice(0, 120)}
-                {msg.content.length > 120 ? "..." : ""}
+              <span className="text-xs text-text-primary truncate">
+                {msg.content.slice(0, 120)}{msg.content.length > 120 ? "…" : ""}
               </span>
             </div>
           ))}
+          {messages.length === 0 && (
+            <div className="list-row-md flex items-center" style={{ paddingLeft: 20, paddingRight: 20 }}>
+              <span className="text-xs text-text-secondary">No messages yet</span>
+            </div>
+          )}
         </div>
       </section>
     </div>

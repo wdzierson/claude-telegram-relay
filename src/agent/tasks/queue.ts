@@ -31,6 +31,7 @@ export interface TaskQueueDeps {
 interface RunningTask {
   id: string;
   abortController: AbortController;
+  injectedMessages: string[];
 }
 
 export class TaskQueue {
@@ -109,6 +110,23 @@ export class TaskQueue {
       .eq("id", taskId);
 
     return !error;
+  }
+
+  /**
+   * Inject a redirect message into a running task.
+   * The message will be injected as a user message on the next iteration.
+   */
+  async interrupt(taskId: string, message: string): Promise<boolean> {
+    const running = this.running.get(taskId);
+    if (!running) return false;
+    running.injectedMessages.push(message);
+    this.deps.broadcast?.("tasks", {
+      type: "task:interrupted",
+      taskId,
+      message,
+      timestamp: new Date().toISOString(),
+    });
+    return true;
   }
 
   /**
@@ -215,7 +233,7 @@ export class TaskQueue {
     const abortController = new AbortController();
     const taskId = row.id;
 
-    this.running.set(taskId, { id: taskId, abortController });
+    this.running.set(taskId, { id: taskId, abortController, injectedMessages: [] });
 
     // Resolve agent type model override from metadata
     const meta = row.metadata as Record<string, unknown> | undefined;
@@ -228,7 +246,7 @@ export class TaskQueue {
       userId: row.user_id,
       priority: row.priority || 0,
       iterationCount: row.iteration_count || 0,
-      maxIterations: row.max_iterations || 25,
+      maxIterations: row.max_iterations || 50,
       tokenUsage: row.token_usage || { input: 0, output: 0 },
       systemPrompt: row.system_prompt,
       conversationHistory: row.conversation_history,
@@ -312,6 +330,13 @@ export class TaskQueue {
                 updated_at: new Date().toISOString(),
               })
               .eq("id", id);
+          },
+          getInjectedMessages: () => {
+            const r = this.running.get(taskId);
+            if (!r || !r.injectedMessages.length) return [];
+            const msgs = [...r.injectedMessages];
+            r.injectedMessages.length = 0;
+            return msgs;
           },
         });
 

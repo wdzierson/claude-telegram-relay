@@ -15,6 +15,7 @@ import {
 import type { AppProps, BrightApp } from "../../core/app-registry";
 import { api, type TaskRow } from "../../lib/api";
 import { useTaskEvents, type TaskEvent } from "../../lib/ws";
+import { GraphView } from "./GraphView";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -22,7 +23,7 @@ import { useTaskEvents, type TaskEvent } from "../../lib/ws";
 
 type TaskStatus = "running" | "queued" | "waiting_user" | "completed" | "failed" | "cancelled";
 
-interface IterationLogEntry {
+export interface IterationLogEntry {
   iteration: number;
   toolName: string | null;
   thoughtText: string | null;
@@ -85,7 +86,55 @@ function formatElapsed(fromIso: string, toIso?: string): string {
 }
 
 function formatTime(iso: string): string {
+  if (!iso) return "";
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
+// ---------------------------------------------------------------------------
+// Parse saved conversation_history into IterationLogEntry[]
+// (used when a task was already running/complete before the page loaded)
+// ---------------------------------------------------------------------------
+
+function parseConversationHistory(
+  history: { role: string; content: unknown }[]
+): IterationLogEntry[] {
+  const entries: IterationLogEntry[] = [];
+  let iterNum = 0;
+
+  for (const msg of history) {
+    if (msg.role !== "assistant") continue;
+    iterNum++;
+
+    const content: { type: string; text?: string; name?: string; input?: unknown }[] =
+      Array.isArray(msg.content)
+        ? (msg.content as { type: string; text?: string; name?: string; input?: unknown }[])
+        : typeof msg.content === "string"
+        ? [{ type: "text", text: msg.content as string }]
+        : [];
+
+    const textBlocks = content.filter((b) => b.type === "text" && b.text);
+    const toolBlocks = content.filter((b) => b.type === "tool_use" && b.name);
+
+    const thoughtText = textBlocks.map((b) => b.text ?? "").join("\n").trim();
+    const toolCalls = toolBlocks.map((b) => {
+      const inputStr = JSON.stringify(b.input ?? {});
+      return {
+        name: b.name ?? "unknown",
+        inputPreview: inputStr.length > 200 ? inputStr.slice(0, 200) + "..." : inputStr,
+      };
+    });
+
+    entries.push({
+      iteration: iterNum,
+      toolName: toolBlocks.at(-1)?.name ?? null,
+      thoughtText: thoughtText.slice(0, 500) || null,
+      toolCalls: toolCalls.length > 0 ? toolCalls : null,
+      tokenUsage: { input: 0, output: 0 },
+      timestamp: "",
+    });
+  }
+
+  return entries;
 }
 
 function truncate(text: string, max: number): string {
@@ -109,19 +158,13 @@ function FilterBar({
   runningCount: number;
 }) {
   return (
-    <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+    <div className="list-row-md flex items-center justify-between px-5 border-b border-border">
       <div className="flex gap-1.5">
         {(["active", "all"] as const).map((f) => (
           <button
             key={f}
             onClick={() => onFilterChange(f)}
-            className="px-3.5 py-1.5 text-xs font-body font-medium uppercase tracking-wider rounded transition-colors"
-            style={{
-              background: filter === f ? "var(--color-elevated)" : "transparent",
-              color: filter === f ? "var(--color-text-primary)" : "var(--color-text-secondary)",
-              border: filter === f ? "1px solid var(--color-accent-active)" : "1px solid transparent",
-              borderRadius: "var(--radius-button)",
-            }}
+            className={"pill text-xs font-body font-medium uppercase tracking-wider transition-colors " + (filter === f ? "pill--active" : "pill--inactive")}
           >
             {f === "active" ? "Active" : "All"}
           </button>
@@ -155,18 +198,11 @@ function TranscriptStep({ entry, isLast }: { entry: IterationLogEntry; isLast: b
       {/* Timeline gutter */}
       <div className="flex flex-col items-center shrink-0" style={{ width: 20 }}>
         <div
-          className="w-2.5 h-2.5 rounded-full shrink-0 mt-1"
-          style={{
-            backgroundColor: hasTools
-              ? "var(--color-accent-active)"
-              : "var(--color-text-secondary)",
-            boxShadow: hasTools ? "0 0 6px rgba(78, 205, 196, 0.4)" : undefined,
-          }}
+          className={"timeline-dot mt-1 " + (hasTools ? "timeline-dot--tool" : "timeline-dot--thought")}
         />
         {!isLast && (
           <div
-            className="flex-1 w-px mt-1"
-            style={{ background: "var(--color-border)" }}
+            className="timeline-line flex-1 w-px mt-1"
           />
         )}
       </div>
@@ -182,12 +218,7 @@ function TranscriptStep({ entry, isLast }: { entry: IterationLogEntry; isLast: b
             entry.toolCalls!.map((tc, i) => (
               <span
                 key={i}
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-mono"
-                style={{
-                  background: "rgba(78, 205, 196, 0.12)",
-                  color: "var(--color-accent-active)",
-                  borderRadius: "var(--radius-button)",
-                }}
+                className="badge-tool inline-flex items-center gap-1"
               >
                 <Code size={9} strokeWidth={2} />
                 {tc.name}
@@ -201,9 +232,11 @@ function TranscriptStep({ entry, isLast }: { entry: IterationLogEntry; isLast: b
               {formatTokens(entryTokens)}
             </span>
           )}
-          <span className="text-[10px] font-mono text-text-secondary ml-auto shrink-0">
-            {formatTime(entry.timestamp)}
-          </span>
+          {entry.timestamp && (
+            <span className="text-[10px] font-mono text-text-secondary ml-auto shrink-0">
+              {formatTime(entry.timestamp)}
+            </span>
+          )}
         </div>
 
         {/* Thought text (collapsible) */}
@@ -219,14 +252,8 @@ function TranscriptStep({ entry, isLast }: { entry: IterationLogEntry; isLast: b
             </button>
             {thoughtOpen && (
               <div
-                className="mt-1 p-2.5 text-[11px] text-text-primary font-body leading-relaxed whitespace-pre-wrap"
-                style={{
-                  background: "var(--color-elevated)",
-                  border: "1px solid var(--color-border)",
-                  borderRadius: "var(--radius-button)",
-                  maxHeight: 160,
-                  overflowY: "auto",
-                }}
+                className="panel-elevated mt-1 p-2.5 text-[11px] text-text-primary font-body leading-relaxed whitespace-pre-wrap overflow-y-auto"
+                style={{ maxHeight: 160 }}
               >
                 {entry.thoughtText}
               </div>
@@ -238,14 +265,8 @@ function TranscriptStep({ entry, isLast }: { entry: IterationLogEntry; isLast: b
         {hasTools && entry.toolCalls!.map((tc, i) => (
           <div
             key={i}
-            className="mt-1.5 p-2 text-[10px] font-mono text-text-secondary leading-relaxed"
-            style={{
-              background: "var(--color-base)",
-              border: "1px solid var(--color-border)",
-              borderRadius: "var(--radius-button)",
-              maxHeight: 80,
-              overflowY: "auto",
-            }}
+            className="panel-base mt-1.5 p-3 text-[10px] font-mono text-text-secondary leading-relaxed overflow-y-auto"
+            style={{ maxHeight: 80 }}
           >
             <span style={{ color: "var(--color-accent-active)" }}>{tc.name}</span>
             {"("}
@@ -264,6 +285,7 @@ function TranscriptStep({ entry, isLast }: { entry: IterationLogEntry; isLast: b
 
 function TaskDetail({ task, iterationLog }: { task: TaskRow; iterationLog: IterationLogEntry[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [detailView, setDetailView] = useState<"timeline" | "graph">("timeline");
   const progress =
     task.max_iterations > 0
       ? Math.min(100, Math.round((task.iteration_count / task.max_iterations) * 100))
@@ -278,9 +300,9 @@ function TaskDetail({ task, iterationLog }: { task: TaskRow; iterationLog: Itera
   }, [iterationLog.length]);
 
   return (
-    <div className="px-5 py-4 space-y-4" style={{ background: "var(--color-base)" }}>
+    <div className="px-5 py-5 space-y-4" style={{ background: "var(--color-base)" }}>
       {/* Meta row */}
-      <div className="flex flex-wrap gap-x-5 gap-y-1.5">
+      <div className="flex flex-wrap gap-x-5 gap-y-2">
         <MetaItem label="Status" value={task.status} />
         <MetaItem label="ID" value={task.id.slice(0, 8)} />
         <MetaItem label="Created" value={formatTime(task.created_at)} />
@@ -297,12 +319,7 @@ function TaskDetail({ task, iterationLog }: { task: TaskRow; iterationLog: Itera
       {/* Pending question */}
       {task.status === "waiting_user" && task.pending_question && (
         <div
-          className="p-3 space-y-1"
-          style={{
-            borderLeft: "4px solid var(--color-status-warning)",
-            background: "rgba(255, 159, 10, 0.08)",
-            borderRadius: "var(--radius-button)",
-          }}
+          className="question-panel p-3 space-y-1"
         >
           <div
             className="flex items-center gap-1.5 text-[10px] font-body font-semibold uppercase tracking-widest"
@@ -327,8 +344,7 @@ function TaskDetail({ task, iterationLog }: { task: TaskRow; iterationLog: Itera
             </span>
           </div>
           <div
-            className="h-1.5 w-full rounded-full overflow-hidden"
-            style={{ background: "var(--color-elevated)" }}
+            className="h-1.5 w-full rounded-full overflow-hidden bg-elevated"
           >
             <div
               className="h-full rounded-full transition-all duration-300"
@@ -341,41 +357,62 @@ function TaskDetail({ task, iterationLog }: { task: TaskRow; iterationLog: Itera
         </div>
       )}
 
-      {/* Transcript — timeline of iterations */}
-      {iterationLog.length > 0 && (
-        <div className="space-y-1.5">
-          <div className="text-[10px] font-body font-semibold uppercase tracking-widest text-text-secondary">
-            Transcript
+      {/* View toggle */}
+      <div style={{ display: "flex", gap: 6, padding: "12px 0", borderBottom: "1px solid var(--color-border)" }}>
+        <button
+          className={`pill text-xs ${detailView === "timeline" ? "pill--active" : "pill--inactive"}`}
+          onClick={() => setDetailView("timeline")}
+        >
+          Timeline
+        </button>
+        <button
+          className={`pill text-xs ${detailView === "graph" ? "pill--active" : "pill--inactive"}`}
+          onClick={() => setDetailView("graph")}
+        >
+          Graph
+        </button>
+      </div>
+
+      {/* Transcript — timeline of iterations OR graph view */}
+      {detailView === "timeline" ? (
+        iterationLog.length > 0 && (
+          <div className="space-y-2">
+            <div className="text-[10px] font-body font-semibold uppercase tracking-widest text-text-secondary">
+              Transcript
+            </div>
+            <div
+              ref={scrollRef}
+              className="overflow-y-auto pt-1"
+              style={{ maxHeight: 320 }}
+            >
+              {iterationLog.map((entry, i) => (
+                <TranscriptStep
+                  key={i}
+                  entry={entry}
+                  isLast={i === iterationLog.length - 1}
+                />
+              ))}
+            </div>
           </div>
-          <div
-            ref={scrollRef}
-            className="overflow-y-auto pt-1"
-            style={{ maxHeight: 320 }}
-          >
-            {iterationLog.map((entry, i) => (
-              <TranscriptStep
-                key={i}
-                entry={entry}
-                isLast={i === iterationLog.length - 1}
-              />
-            ))}
-          </div>
+        )
+      ) : (
+        <div style={{ flex: 1, overflow: "hidden" }}>
+          <GraphView
+            iterationLog={iterationLog}
+            taskStatus={task.status}
+            taskDescription={task.description}
+          />
         </div>
       )}
 
       {/* Result */}
       {task.status === "completed" && task.result && (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <div className="text-[10px] font-body font-semibold uppercase tracking-widest text-text-secondary">
             Result
           </div>
           <div
-            className="max-h-40 overflow-y-auto p-3 text-xs font-mono text-text-primary leading-relaxed whitespace-pre-wrap"
-            style={{
-              background: "var(--color-elevated)",
-              border: "1px solid var(--color-border)",
-              borderRadius: "var(--radius-button)",
-            }}
+            className="panel-elevated max-h-40 overflow-y-auto p-3 text-xs font-mono text-text-primary leading-relaxed whitespace-pre-wrap"
           >
             {task.result}
           </div>
@@ -384,18 +421,12 @@ function TaskDetail({ task, iterationLog }: { task: TaskRow; iterationLog: Itera
 
       {/* Error */}
       {task.status === "failed" && task.error && (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <div className="text-[10px] font-body font-semibold uppercase tracking-widest text-status-error">
             Error
           </div>
           <div
-            className="max-h-40 overflow-y-auto p-3 text-xs font-mono leading-relaxed whitespace-pre-wrap"
-            style={{
-              background: "rgba(255, 69, 58, 0.08)",
-              border: "1px solid var(--color-status-error)",
-              borderRadius: "var(--radius-button)",
-              color: "var(--color-text-primary)",
-            }}
+            className="error-panel max-h-40 overflow-y-auto p-3 text-xs font-mono leading-relaxed whitespace-pre-wrap text-text-primary"
           >
             {task.error}
           </div>
@@ -426,6 +457,7 @@ function TaskRowItem({
   expanded,
   onToggle,
   onCancel,
+  onInterrupt,
   iterationLog,
 }: {
   task: TaskRow;
@@ -433,6 +465,7 @@ function TaskRowItem({
   expanded: boolean;
   onToggle: () => void;
   onCancel: (id: string) => void;
+  onInterrupt: (id: string) => void;
   iterationLog: IterationLogEntry[];
 }) {
   const isActive = ACTIVE_STATUSES.has(task.status);
@@ -454,7 +487,7 @@ function TaskRowItem({
       }
     >
       <div
-        className="flex items-center gap-3 py-3 cursor-pointer transition-colors hover:bg-white/5"
+        className="list-row flex items-center gap-3 cursor-pointer transition-colors hover:bg-white/5"
         style={{ paddingLeft: isChild ? 28 : 20, paddingRight: 20 }}
         onClick={onToggle}
       >
@@ -474,26 +507,14 @@ function TaskRowItem({
 
           {/* Agent type badge */}
           {agentType && (
-            <span
-              className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-mono"
-              style={{
-                background: "rgba(78, 205, 196, 0.15)",
-                color: "var(--color-accent-active)",
-              }}
-            >
+            <span className="badge badge-agent shrink-0">
               {agentType}
             </span>
           )}
 
           {/* Priority badge */}
           {priority > 0 && (
-            <span
-              className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-mono"
-              style={{
-                background: "rgba(255, 107, 138, 0.15)",
-                color: "var(--color-accent-primary)",
-              }}
-            >
+            <span className="badge badge-priority shrink-0">
               P{priority}
             </span>
           )}
@@ -528,10 +549,22 @@ function TaskRowItem({
           {elapsed}
         </span>
 
-        {/* Cancel button for active tasks */}
+        {/* Interrupt + Cancel buttons for active tasks */}
+        {task.status === "running" && (
+          <button
+            className="p-1.5 shrink-0 text-text-secondary hover:text-status-warning transition-colors"
+            title="Redirect task"
+            onClick={(e) => {
+              e.stopPropagation();
+              onInterrupt(task.id);
+            }}
+          >
+            <MessageCircle size={14} strokeWidth={1.5} />
+          </button>
+        )}
         {isActive && (
           <button
-            className="p-0.5 shrink-0 text-text-secondary hover:text-status-error transition-colors"
+            className="p-1.5 shrink-0 text-text-secondary hover:text-status-error transition-colors"
             title="Cancel task"
             onClick={(e) => {
               e.stopPropagation();
@@ -558,6 +591,8 @@ function AgentMonitor(_props: AppProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [iterationLogs, setIterationLogs] = useState<Map<string, IterationLogEntry[]>>(new Map());
+  const [interruptTarget, setInterruptTarget] = useState<string | null>(null);
+  const [interruptMsg, setInterruptMsg] = useState("");
   // Initial fetch + polling fallback
   useEffect(() => {
     const load = async () => {
@@ -574,8 +609,53 @@ function AgentMonitor(_props: AppProps) {
     return () => clearInterval(interval);
   }, []);
 
+  // When a task is expanded with no live iteration log, load history from Supabase
+  useEffect(() => {
+    if (!expandedId) return;
+    const existingLog = iterationLogs.get(expandedId) ?? [];
+    if (existingLog.length > 0) return;
+    const task = tasks.find((t) => t.id === expandedId);
+    if (!task || !task.iteration_count) return;
+
+    api.getTask(expandedId)
+      .then((data) => {
+        const history = data.task?.conversation_history;
+        if (!history?.length) return;
+        const parsed = parseConversationHistory(history);
+        if (parsed.length === 0) return;
+        setIterationLogs((prev) => {
+          const next = new Map(prev);
+          if ((next.get(expandedId) ?? []).length === 0) {
+            next.set(expandedId, parsed);
+          }
+          return next;
+        });
+      })
+      .catch(() => {}); // Silently ignore if Supabase not configured
+  }, [expandedId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Real-time WebSocket updates
   const handleEvent = useCallback((event: TaskEvent) => {
+    // Capture redirect events as log entries
+    if (event.type === "task:interrupted" && event.interruptMessage) {
+      setIterationLogs((prev) => {
+        const next = new Map(prev);
+        const entries = next.get(event.taskId) ?? [];
+        next.set(event.taskId, [
+          ...entries,
+          {
+            iteration: entries.length + 1,
+            toolName: "↩ redirect",
+            thoughtText: event.interruptMessage ?? null,
+            toolCalls: null,
+            tokenUsage: { input: 0, output: 0 },
+            timestamp: event.timestamp,
+          },
+        ]);
+        return next;
+      });
+    }
+
     // Capture iteration log entries with full detail
     if (event.type === "task:iteration" && event.iteration != null) {
       setIterationLogs((prev) => {
@@ -648,6 +728,12 @@ function AgentMonitor(_props: AppProps) {
       const data = await api.getTasks(30);
       setTasks(data.tasks);
     }
+  }, []);
+
+  // Interrupt handler
+  const handleInterrupt = useCallback((taskId: string) => {
+    setInterruptTarget(taskId);
+    setInterruptMsg("");
   }, []);
 
   // Build tree-ordered task list: parents followed by their children
@@ -736,12 +822,63 @@ function AgentMonitor(_props: AppProps) {
                 expanded={expandedId === task.id}
                 onToggle={() => setExpandedId((prev) => (prev === task.id ? null : task.id))}
                 onCancel={handleCancel}
+                onInterrupt={handleInterrupt}
                 iterationLog={iterationLogs.get(task.id) ?? []}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* Interrupt / Redirect modal */}
+      {interruptTarget && (
+        <div
+          className="modal-overlay"
+          onClick={() => { setInterruptTarget(null); setInterruptMsg(""); }}
+        >
+          <div
+            className="modal-content p-5 space-y-4"
+            style={{ width: 384 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-sm font-medium text-text-primary">Redirect Task</div>
+            <div className="text-xs text-text-secondary font-mono">{interruptTarget.substring(0, 8)}…</div>
+            <textarea
+              className="input w-full text-sm bg-elevated text-text-primary font-mono resize-none"
+              rows={4}
+              placeholder="Enter new instructions for the agent..."
+              value={interruptMsg}
+              onChange={(e) => setInterruptMsg(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") { setInterruptTarget(null); setInterruptMsg(""); }
+              }}
+              autoFocus
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                className="btn-secondary text-sm"
+                onClick={() => { setInterruptTarget(null); setInterruptMsg(""); }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-primary text-sm"
+                disabled={!interruptMsg.trim()}
+                style={{ opacity: interruptMsg.trim() ? 1 : 0.5 }}
+                onClick={async () => {
+                  const target = interruptTarget;
+                  const msg = interruptMsg;
+                  setInterruptTarget(null);
+                  setInterruptMsg("");
+                  await api.interruptTask(target, msg);
+                }}
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

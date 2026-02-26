@@ -259,12 +259,19 @@ export async function handleGetMessages(
 
   const limit = parseInt(url.searchParams.get("limit") || "50");
   const offset = parseInt(url.searchParams.get("offset") || "0");
+  const channel = url.searchParams.get("channel");
 
-  const { data, error, count } = await deps.supabaseClient
+  let query = deps.supabaseClient
     .from("messages")
     .select("id, role, content, channel, metadata, created_at", { count: "exact" })
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
+
+  if (channel) {
+    query = query.eq("channel", channel);
+  }
+
+  const { data, error, count } = await query;
 
   if (error) {
     return json({ messages: [], error: error.message });
@@ -295,6 +302,29 @@ export async function handleGetMemory(
   }
 
   return json({ memory: data || [], total: count || 0 });
+}
+
+export async function handleGetTask(
+  taskId: string,
+  deps: AdminDeps
+): Promise<Response> {
+  if (!deps.supabaseClient) {
+    return json({ error: "Supabase not configured" }, 503);
+  }
+
+  const { data, error } = await deps.supabaseClient
+    .from("tasks")
+    .select(
+      "id, status, description, result, error, iteration_count, max_iterations, token_usage, created_at, started_at, completed_at, conversation_history, metadata"
+    )
+    .eq("id", taskId)
+    .single();
+
+  if (error || !data) {
+    return json({ error: "Task not found" }, 404);
+  }
+
+  return json({ task: data });
 }
 
 export async function handleGetTasks(
@@ -371,6 +401,25 @@ export async function handleChat(
     const msg = err instanceof Error ? err.message : String(err);
     return json({ error: `Chat failed: ${msg}` }, 500);
   }
+}
+
+// ==================== Interrupt Task ====================
+
+export async function handleInterruptTask(
+  taskId: string,
+  req: Request,
+  deps: AdminDeps
+): Promise<Response> {
+  let body: { message?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return json({ error: "Invalid JSON body" }, 400);
+  }
+  const message = body.message?.trim();
+  if (!message) return json({ error: "message is required" }, 400);
+  const success = await deps.taskQueue?.interrupt(taskId, message);
+  return success ? json({ ok: true }) : json({ error: "Task not found or not running" }, 404);
 }
 
 // ==================== Cancel Task ====================

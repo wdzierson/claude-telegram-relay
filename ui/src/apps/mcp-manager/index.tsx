@@ -46,23 +46,13 @@ const TABS: { key: Tab; label: string }[] = [
 function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
   return (
     <div
-      className="flex items-center gap-1.5 px-5 py-3 border-b"
-      style={{ borderColor: "var(--color-border)" }}
+      className="flex items-center gap-1.5 px-5 py-4 border-b border-border"
     >
       {TABS.map((t) => (
         <button
           key={t.key}
           onClick={() => onChange(t.key)}
-          className="px-3 py-1.5 text-xs font-body font-medium transition-colors"
-          style={{
-            background: active === t.key ? "var(--color-elevated)" : "transparent",
-            color: active === t.key ? "var(--color-text-primary)" : "var(--color-text-secondary)",
-            border:
-              active === t.key
-                ? "1px solid var(--color-accent-active)"
-                : "1px solid transparent",
-            borderRadius: "var(--radius-pill)",
-          }}
+          className={"pill text-xs font-body font-medium transition-colors " + (active === t.key ? "pill--active" : "pill--inactive")}
         >
           {t.label}
         </button>
@@ -78,12 +68,7 @@ function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void 
 function RestartBanner() {
   return (
     <div
-      className="flex items-center gap-2 mx-4 mt-3 px-3 py-2 text-sm"
-      style={{
-        background: "var(--color-status-warning)",
-        color: "var(--color-base)",
-        borderRadius: "var(--radius-button)",
-      }}
+      className="banner-warning flex items-center gap-2 mx-4 mt-3 text-sm"
     >
       <AlertTriangle size={14} />
       Restart required for changes to take effect.
@@ -108,29 +93,21 @@ function ServerRow({
 }) {
   return (
     <div
-      className="border-b last:border-b-0"
-      style={{ borderColor: "var(--color-border)" }}
+      className="border-b border-border last:border-b-0"
     >
       {/* Header row */}
       <div
-        className="flex items-center gap-3 px-5 py-3 cursor-pointer transition-colors hover:bg-white/5"
+        className="list-row flex items-center gap-3 cursor-pointer transition-colors hover:bg-white/5"
+        style={{ paddingLeft: 20, paddingRight: 20 }}
         onClick={onToggle}
       >
         {/* Status dot */}
         <span
-          style={{
-            width: 8,
-            height: 8,
-            borderRadius: "50%",
-            flexShrink: 0,
-            backgroundColor: server.connected
-              ? "var(--color-status-live)"
-              : "var(--color-text-secondary)",
-          }}
+          className={"status-dot " + (server.connected ? "status-dot-live" : "status-dot-idle")}
         />
 
         {/* Expand chevron */}
-        <span className="shrink-0" style={{ color: "var(--color-text-secondary)" }}>
+        <span className="shrink-0 text-text-secondary">
           {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </span>
 
@@ -141,20 +118,14 @@ function ServerRow({
 
         {/* Tool count badge */}
         <span
-          className="text-[10px] font-mono px-2 py-0.5 shrink-0"
-          style={{
-            background: "var(--color-elevated)",
-            color: "var(--color-text-secondary)",
-            borderRadius: "var(--radius-pill)",
-            border: "1px solid var(--color-border)",
-          }}
+          className="badge panel-elevated text-[10px] font-mono px-2 py-0.5 shrink-0 text-text-secondary"
         >
           {server.toolCount} tool{server.toolCount !== 1 ? "s" : ""}
         </span>
 
         {/* Remove button */}
         <button
-          className="p-1 shrink-0 transition-colors"
+          className="p-1.5 shrink-0 transition-colors"
           style={{ color: "var(--color-text-secondary)" }}
           title="Remove server"
           onClick={(e) => {
@@ -175,49 +146,32 @@ function ServerRow({
       {/* Expanded tool list */}
       {expanded && (
         <div
-          className="mx-4 mb-3 p-3 space-y-2"
-          style={{
-            background: "var(--color-glass)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            border: "1px solid var(--color-glass-border)",
-            borderRadius: "var(--radius-card)",
-          }}
+          className="card mx-5 mb-4 p-4 space-y-3"
         >
-          <div className="text-[10px] font-body font-semibold uppercase tracking-widest text-text-secondary mb-1.5">
+          <div className="text-[10px] font-body font-semibold uppercase tracking-widest text-text-secondary mb-4">
             Command
           </div>
           <div
-            className="px-2 py-1.5 text-xs font-mono text-text-primary"
-            style={{
-              background: "var(--color-elevated)",
-              borderRadius: "var(--radius-button)",
-              border: "1px solid var(--color-border)",
-              wordBreak: "break-all",
-            }}
+            className="panel-elevated px-3 py-2.5 text-xs font-mono text-text-secondary"
+            style={{ wordBreak: "break-all" }}
           >
             {server.command} {server.args?.join(" ") ?? ""}
           </div>
 
           {server.tools.length > 0 && (
             <>
-              <div className="text-[10px] font-body font-semibold uppercase tracking-widest text-text-secondary mt-3 mb-1.5">
+              <div className="text-[10px] font-body font-semibold uppercase tracking-widest text-text-secondary mt-3 mb-3">
                 Tools
               </div>
               <div className="space-y-1 max-h-48 overflow-y-auto">
                 {server.tools.map((tool) => (
                   <div
                     key={tool.name}
-                    className="flex items-start gap-2 px-2 py-1.5"
-                    style={{
-                      background: "var(--color-base)",
-                      borderRadius: "var(--radius-button)",
-                    }}
+                    className="list-row-md flex items-start gap-2 bg-base rounded-md px-3"
                   >
                     <Wrench
                       size={12}
-                      className="shrink-0 mt-0.5"
-                      style={{ color: "var(--color-accent-active)" }}
+                      className="shrink-0 mt-0.5 text-accent-active"
                     />
                     <div className="min-w-0">
                       <div className="text-xs font-mono text-text-primary">{tool.name}</div>
@@ -267,7 +221,7 @@ function ActiveServersTab({
       <div className="flex-1 overflow-y-auto mt-1">
         {servers.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-text-secondary gap-2">
-            <Server size={24} style={{ color: "var(--color-text-secondary)" }} />
+            <Server size={24} className="text-text-secondary" />
             <span className="text-sm">No MCP servers configured</span>
             <span className="text-xs">Add servers from the Catalog tab</span>
           </div>
@@ -304,36 +258,24 @@ function EnvVarModal({
 }) {
   const [values, setValues] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
-    for (const key of entry.envVars ?? []) init[key] = "";
+    for (const ev of entry.envVars ?? []) init[ev.key] = "";
     return init;
   });
 
-  const allFilled = Object.values(values).every((v) => v.trim().length > 0);
+  // Only required vars must be filled
+  const requiredKeys = (entry.envVars ?? []).filter((ev) => ev.required).map((ev) => ev.key);
+  const allFilled = requiredKeys.length === 0
+    ? Object.values(values).every((v) => v.trim().length > 0)
+    : requiredKeys.every((k) => values[k]?.trim().length > 0);
 
   return (
     <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 1000,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "rgba(0,0,0,0.5)",
-        backdropFilter: "blur(4px)",
-      }}
+      className="modal-overlay"
       onClick={onCancel}
     >
       <div
-        className="p-5 space-y-4"
-        style={{
-          background: "var(--color-surface)",
-          border: "1px solid var(--color-glass-border)",
-          borderRadius: "var(--radius-card)",
-          width: 420,
-          maxWidth: "90vw",
-          boxShadow: "0 16px 48px rgba(0,0,0,0.4)",
-        }}
+        className="modal-content p-5 space-y-4"
+        style={{ width: 420, maxWidth: "90vw" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
@@ -341,7 +283,7 @@ function EnvVarModal({
             Configure {entry.name}
           </h3>
           <button
-            className="p-1 transition-colors"
+            className="p-1.5 transition-colors"
             style={{ color: "var(--color-text-secondary)" }}
             onClick={onCancel}
             onMouseEnter={(e) =>
@@ -360,23 +302,25 @@ function EnvVarModal({
         </p>
 
         <div className="space-y-3">
-          {(entry.envVars ?? []).map((key) => (
-            <div key={key}>
+          {(entry.envVars ?? []).map((ev) => (
+            <div key={ev.key}>
               <label className="block text-[10px] font-mono font-semibold uppercase tracking-widest text-text-secondary mb-1">
-                {key}
+                {ev.key}
+                {!ev.required && (
+                  <span className="ml-1 font-normal normal-case tracking-normal opacity-50">(optional)</span>
+                )}
               </label>
+              {ev.description && (
+                <p className="text-[10px] text-text-secondary mb-1 leading-snug">{ev.description}</p>
+              )}
               <input
                 type="text"
-                value={values[key] ?? ""}
+                value={values[ev.key] ?? ""}
                 onChange={(e) =>
-                  setValues((prev) => ({ ...prev, [key]: e.target.value }))
+                  setValues((prev) => ({ ...prev, [ev.key]: e.target.value }))
                 }
-                placeholder={`Enter ${key}`}
-                className="w-full px-2.5 py-1.5 font-mono text-xs bg-elevated text-text-primary placeholder:text-text-secondary/50 outline-none focus:border-accent-active transition-colors"
-                style={{
-                  border: "1px solid var(--color-border)",
-                  borderRadius: "var(--radius-input)",
-                }}
+                placeholder={ev.key}
+                className="input w-full px-2.5 py-1.5 font-mono text-xs bg-elevated text-text-primary placeholder:text-text-secondary/50 outline-none transition-colors"
                 onFocus={(e) =>
                   (e.currentTarget.style.borderColor = "var(--color-accent-active)")
                 }
@@ -391,30 +335,14 @@ function EnvVarModal({
         <div className="flex justify-end gap-2 pt-1">
           <button
             onClick={onCancel}
-            className="px-3 py-1.5 text-xs font-medium transition-colors"
-            style={{
-              color: "var(--color-text-secondary)",
-              border: "1px solid var(--color-border)",
-              borderRadius: "var(--radius-button)",
-              background: "transparent",
-            }}
+            className="btn-secondary text-xs"
           >
             Cancel
           </button>
           <button
             onClick={() => onSubmit(values)}
             disabled={!allFilled}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors"
-            style={{
-              background: allFilled
-                ? "var(--color-accent-primary)"
-                : "var(--color-elevated)",
-              color: allFilled ? "var(--color-base)" : "var(--color-text-secondary)",
-              borderRadius: "var(--radius-button)",
-              border: "1px solid transparent",
-              opacity: allFilled ? 1 : 0.6,
-              cursor: allFilled ? "pointer" : "not-allowed",
-            }}
+            className="btn-primary flex items-center gap-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed"
           >
             <Plus size={12} />
             Add Server
@@ -436,15 +364,8 @@ function CatalogCard({
 }) {
   return (
     <div
-      className="p-4 flex flex-col gap-2.5"
-      style={{
-        background: "var(--color-glass)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        border: "1px solid var(--color-glass-border)",
-        borderRadius: "var(--radius-card)",
-        opacity: installed ? 0.6 : 1,
-      }}
+      className="card p-5 flex flex-col gap-2.5"
+      style={{ opacity: installed ? 0.6 : 1 }}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
@@ -454,34 +375,19 @@ function CatalogCard({
           </div>
         </div>
         {installed ? (
-          <span
-            className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium shrink-0"
-            style={{
-              background: "var(--color-elevated)",
-              color: "var(--color-accent-active)",
-              borderRadius: "var(--radius-pill)",
-              border: "1px solid var(--color-border)",
-            }}
-          >
+          <span className="badge badge-tool flex items-center gap-1 shrink-0">
             <Check size={10} />
             Installed
           </span>
         ) : (
           <button
             onClick={() => onAdd(entry)}
-            className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium shrink-0 transition-colors"
+            className="badge flex items-center gap-1 shrink-0 cursor-pointer transition-opacity hover:opacity-80"
             style={{
-              background: "var(--color-accent-primary)",
-              color: "var(--color-base)",
-              borderRadius: "var(--radius-pill)",
-              border: "1px solid transparent",
+              background: "rgba(255, 107, 138, 0.12)",
+              color: "var(--color-accent-primary)",
+              border: "1px solid rgba(255, 107, 138, 0.25)",
             }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.background = "var(--color-accent-active)")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.background = "var(--color-accent-primary)")
-            }
           >
             <Plus size={10} />
             Add
@@ -491,18 +397,14 @@ function CatalogCard({
 
       {entry.envVars && entry.envVars.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-1">
-          {entry.envVars.map((v) => (
+          {entry.envVars.map((ev) => (
             <span
-              key={v}
-              className="text-[9px] font-mono px-1.5 py-0.5"
-              style={{
-                background: "var(--color-elevated)",
-                color: "var(--color-text-secondary)",
-                borderRadius: "var(--radius-button)",
-                border: "1px solid var(--color-border)",
-              }}
+              key={ev.key}
+              className="panel-elevated text-[9px] font-mono px-1.5 py-0.5"
+              style={{ color: ev.required ? "var(--color-text-secondary)" : "var(--color-status-idle)" }}
+              title={ev.description}
             >
-              {v}
+              {ev.key}
             </span>
           ))}
         </div>
@@ -547,7 +449,7 @@ function CatalogTab({
   if (catalog.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-text-secondary gap-2">
-        <Puzzle size={24} style={{ color: "var(--color-text-secondary)" }} />
+        <Puzzle size={24} className="text-text-secondary" />
         <span className="text-sm">No catalog entries available</span>
       </div>
     );
@@ -555,18 +457,23 @@ function CatalogTab({
 
   return (
     <>
-      <div
-        className="grid gap-4 p-5 overflow-y-auto"
-        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}
-      >
-        {catalog.map((entry) => (
-          <CatalogCard
-            key={entry.name}
-            entry={entry}
-            installed={installedNames.has(entry.name)}
-            onAdd={handleAdd}
-          />
-        ))}
+      <div className="h-full overflow-y-auto">
+        <div
+          className="grid gap-4"
+          style={{
+            gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+            padding: "20px 20px 20px 20px",
+          }}
+        >
+          {catalog.map((entry) => (
+            <CatalogCard
+              key={entry.name}
+              entry={entry}
+              installed={installedNames.has(entry.name)}
+              onAdd={handleAdd}
+            />
+          ))}
+        </div>
       </div>
 
       {modalEntry && (
@@ -666,16 +573,11 @@ function ToolsBrowserTab({
   return (
     <div className="flex flex-col h-full">
       {/* Search bar */}
-      <div className="px-5 py-3">
+      <div className="px-5 py-4">
         <div
-          className="flex items-center gap-2.5 px-3 py-2"
-          style={{
-            background: "var(--color-elevated)",
-            border: "1px solid var(--color-border)",
-            borderRadius: "var(--radius-input)",
-          }}
+          className="panel-elevated flex items-center gap-2.5 px-3 py-2.5"
         >
-          <Search size={14} style={{ color: "var(--color-text-secondary)", flexShrink: 0 }} />
+          <Search size={14} className="text-text-secondary shrink-0" />
           <input
             type="text"
             value={search}
@@ -686,7 +588,7 @@ function ToolsBrowserTab({
           {search && (
             <button
               onClick={() => setSearch("")}
-              style={{ color: "var(--color-text-secondary)", flexShrink: 0 }}
+              className="text-text-secondary shrink-0"
             >
               <X size={12} />
             </button>
@@ -695,10 +597,10 @@ function ToolsBrowserTab({
       </div>
 
       {/* Tool list */}
-      <div className="flex-1 overflow-y-auto px-5 pb-5 space-y-5">
+      <div className="flex-1 overflow-y-auto px-5 pb-6 space-y-6">
         {grouped.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-32 text-text-secondary gap-1">
-            <Wrench size={20} style={{ color: "var(--color-text-secondary)" }} />
+            <Wrench size={20} className="text-text-secondary" />
             <span className="text-sm">
               {tools.length === 0 ? "No tools available" : "No tools match your search"}
             </span>
@@ -706,34 +608,28 @@ function ToolsBrowserTab({
         ) : (
           grouped.map(([category, categoryTools]) => (
             <section key={category}>
-              <h3 className="text-[10px] font-body font-semibold uppercase tracking-widest text-text-secondary mb-2">
+              <h3 className="text-[10px] font-body font-semibold uppercase tracking-widest text-text-secondary mb-4">
                 {category}
                 <span
-                  className="ml-2 font-mono"
-                  style={{ color: "var(--color-text-secondary)" }}
+                  className="ml-2 font-mono text-text-secondary"
                 >
                   ({categoryTools.length})
                 </span>
               </h3>
               <div
-                style={{
-                  border: "1px solid var(--color-glass-border)",
-                  borderRadius: "var(--radius-card)",
-                  overflow: "hidden",
-                }}
+                className="card-bordered"
               >
                 {categoryTools.map((tool, i) => (
                   <div
                     key={tool.name}
-                    className="flex items-start gap-3 px-4 py-3"
+                    className="list-row flex items-start gap-3 px-5"
                     style={{
                       borderTop: i > 0 ? "1px solid var(--color-border)" : undefined,
                     }}
                   >
                     <Wrench
                       size={12}
-                      className="shrink-0 mt-0.5"
-                      style={{ color: "var(--color-accent-active)" }}
+                      className="shrink-0 mt-0.5 text-accent-active"
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -888,13 +784,7 @@ function McpManager(_props: AppProps) {
         <TabBar active={tab} onChange={setTab} />
         <div className="flex items-center justify-center flex-1 p-4">
           <div
-            className="flex items-center gap-2 px-3 py-2 text-sm"
-            style={{
-              background: "rgba(184, 92, 92, 0.12)",
-              border: "1px solid var(--color-status-error)",
-              borderRadius: "var(--radius-button)",
-              color: "var(--color-status-error)",
-            }}
+            className="banner-error flex items-center gap-2 px-3 py-2 text-sm"
           >
             <AlertTriangle size={14} />
             {error}

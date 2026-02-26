@@ -22,6 +22,7 @@ export async function runTask(options: TaskRunnerOptions): Promise<string> {
     onStatusChange,
     onIteration,
     onSaveState,
+    getInjectedMessages,
     anthropicConfig,
   } = options;
 
@@ -50,12 +51,28 @@ export async function runTask(options: TaskRunnerOptions): Promise<string> {
   // so the plan stays visible even as tool results fill the context window.
   let extractedPlan: string | undefined;
 
+  // Track consecutive identical tool errors to detect stuck loops
+  let lastToolError: string | undefined;
+  let consecutiveErrorCount = 0;
+  const MAX_CONSECUTIVE_ERRORS = 3;
+
   try {
     while (iteration < task.maxIterations) {
       // Abort check
       if (signal?.aborted) {
         await onStatusChange(task.id, "cancelled", "Task cancelled by user.");
         return "Task was cancelled.";
+      }
+
+      // Consume any injected redirect messages
+      if (getInjectedMessages) {
+        const injected = getInjectedMessages();
+        if (injected.length > 0) {
+          messages.push({
+            role: "user",
+            content: `[USER REDIRECT]: ${injected.join("\n\n")}\n\nThe user has redirected this task. Acknowledge briefly and adjust your approach.`,
+          });
+        }
       }
 
       // Timeout check
@@ -137,13 +154,31 @@ export async function runTask(options: TaskRunnerOptions): Promise<string> {
               const result = await tool.execute(
                 block.input as Record<string, unknown>
               );
+              // Reset error tracking on success
+              lastToolError = undefined;
+              consecutiveErrorCount = 0;
               toolResults.push({
                 type: "tool_result",
                 tool_use_id: block.id,
                 content: result,
               });
             } catch (err: any) {
-              console.error(`Task ${task.id}: tool ${block.name} error:`, err.message);
+              const errorKey = `${block.name}:${err.message}`;
+              if (errorKey === lastToolError) {
+                consecutiveErrorCount++;
+              } else {
+                lastToolError = errorKey;
+                consecutiveErrorCount = 1;
+              }
+              console.error(`Task ${task.id}: tool ${block.name} error (${consecutiveErrorCount}/${MAX_CONSECUTIVE_ERRORS}):`, err.message);
+
+              if (consecutiveErrorCount >= MAX_CONSECUTIVE_ERRORS) {
+                const bailMsg = `Task stopped: tool "${block.name}" failed ${MAX_CONSECUTIVE_ERRORS} times in a row with the same error. Last error: ${err.message}`;
+                console.error(`Task ${task.id}: ${bailMsg}`);
+                await onStatusChange(task.id, "failed", undefined, bailMsg);
+                return bailMsg;
+              }
+
               toolResults.push({
                 type: "tool_result",
                 tool_use_id: block.id,

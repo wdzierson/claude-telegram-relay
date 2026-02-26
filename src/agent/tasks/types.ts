@@ -71,5 +71,7 @@ export interface TaskRunnerOptions {
     taskId: string,
     messages: Anthropic.Messages.MessageParam[]
   ) => Promise<void>;
+  /** Returns any pending injected messages and clears them */
+  getInjectedMessages?: () => string[];
   anthropicConfig: { apiKey: string; model: string; maxTokens: number };
 }

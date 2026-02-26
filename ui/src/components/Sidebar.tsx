@@ -1,97 +1,67 @@
-import { useState } from "react";
-import {
-  LayoutDashboard, Bot, MessageSquare, Wrench,
-  Settings, ScrollText, Plug, Brain, ChevronRight, Activity, Puzzle
-} from "lucide-react";
+import { LogOut, LayoutDashboard, Bot, MessageSquare, Wrench, Settings, ScrollText, Plug, Brain, Activity, Puzzle } from "lucide-react";
+// Branding lives in TopBar — sidebar is nav-only
 import type { BrightApp } from "../core/app-registry";
+import { clearApiKey } from "../lib/auth";
 
 interface SidebarProps {
   apps: BrightApp[];
   onLaunch: (appId: string) => void;
+  activeAppId?: string;
 }
 
 const ICON_MAP: Record<string, typeof LayoutDashboard> = {
   "layout-dashboard": LayoutDashboard,
-  "bot": Bot,
-  "message-square": MessageSquare,
-  "wrench": Wrench,
-  "settings": Settings,
-  "scroll-text": ScrollText,
-  "plug": Plug,
-  "brain": Brain,
-  "activity": Activity,
-  "puzzle": Puzzle,
+  "bot":              Bot,
+  "message-square":   MessageSquare,
+  "wrench":           Wrench,
+  "settings":         Settings,
+  "scroll-text":      ScrollText,
+  "plug":             Plug,
+  "brain":            Brain,
+  "activity":         Activity,
+  "puzzle":           Puzzle,
 };
 
 const CATEGORIES: { key: BrightApp["category"]; label: string }[] = [
-  { key: "core", label: "CORE" },
-  { key: "tools", label: "AGENTS" },
-  { key: "custom", label: "SYSTEM" },
+  { key: "core",   label: "Core" },
+  { key: "tools",  label: "Agents" },
+  { key: "custom", label: "System" },
 ];
 
-export function Sidebar({ apps, onLaunch }: SidebarProps) {
-  const [expanded, setExpanded] = useState(false);
-  const [pinned, setPinned] = useState(false);
-
-  const isOpen = expanded || pinned;
-
+export function Sidebar({ apps, onLaunch, activeAppId }: SidebarProps) {
   return (
-    <div
-      className="h-full flex flex-col border-r transition-all duration-200 shrink-0"
-      style={{
-        width: isOpen ? 210 : 64,
-        borderColor: "var(--color-border)",
-        background: "var(--color-surface)",
-      }}
-      onMouseEnter={() => setExpanded(true)}
-      onMouseLeave={() => setExpanded(false)}
-    >
-      {/* Pin toggle */}
-      {isOpen && (
-        <button
-          className="flex items-center justify-end px-3 py-2 text-text-secondary hover:text-accent-active transition-colors"
-          onClick={() => setPinned((p) => !p)}
-          title={pinned ? "Unpin sidebar" : "Pin sidebar"}
-        >
-          <ChevronRight
-            size={14}
-            className={`transition-transform ${pinned ? "rotate-180" : ""}`}
-          />
-        </button>
-      )}
-
-      {/* App list by category */}
+    <div className="sidebar h-full flex flex-col shrink-0 overflow-hidden">
+      {/* App list */}
       <nav className="flex-1 overflow-y-auto py-2">
         {CATEGORIES.map(({ key, label }) => {
           const categoryApps = apps.filter((a) => a.category === key);
           if (categoryApps.length === 0) return null;
           return (
-            <div key={key} className="mb-3">
-              {isOpen && (
-                <div className="px-4 py-1 text-[10px] font-body font-semibold uppercase tracking-widest text-text-secondary">
-                  {label}
-                </div>
-              )}
+            <div key={key} className="mb-1">
+              <div className="nav-section-label">{label}</div>
               {categoryApps.map((app) => {
-                const Icon = ICON_MAP[app.icon] || LayoutDashboard;
+                const Icon     = ICON_MAP[app.icon] || LayoutDashboard;
+                const isActive = activeAppId === app.id;
                 return (
                   <button
                     key={app.id}
-                    className="w-full flex items-center gap-3 px-5 py-3 rounded-lg hover:bg-elevated transition-colors group relative"
+                    className={"nav-item " + (isActive ? "nav-item--active" : "")}
                     onClick={() => onLaunch(app.id)}
                     title={app.name}
                   >
                     <Icon
-                      size={20}
+                      size={16}
                       strokeWidth={1.5}
-                      className="text-text-secondary group-hover:text-accent-active transition-colors shrink-0"
+                      className="nav-item-icon shrink-0"
+                      style={{
+                        color: isActive
+                          ? "var(--color-accent-active)"
+                          : "var(--color-text-secondary)",
+                      }}
                     />
-                    {isOpen && (
-                      <span className="text-sm text-text-primary truncate">
-                        {app.name}
-                      </span>
-                    )}
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-0 group-hover:h-5 bg-accent-active rounded-full transition-all duration-200" />
+                    <span className="text-sm truncate">
+                      {app.name}
+                    </span>
                   </button>
                 );
               })}
@@ -99,6 +69,21 @@ export function Sidebar({ apps, onLaunch }: SidebarProps) {
           );
         })}
       </nav>
+
+      {/* Footer: logout */}
+      <div
+        className="shrink-0 px-3 py-3 flex items-center"
+        style={{ borderTop: "1px solid var(--color-border)" }}
+      >
+        <button
+          className="nav-item"
+          onClick={() => { clearApiKey(); window.location.reload(); }}
+          title="Sign out"
+        >
+          <LogOut size={16} strokeWidth={1.5} style={{ color: "var(--color-text-secondary)", flexShrink: 0 }} />
+          <span className="text-sm">Sign out</span>
+        </button>
+      </div>
     </div>
   );
 }

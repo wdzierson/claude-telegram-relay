@@ -12,7 +12,7 @@ import { join, basename, extname } from "path";
 export interface AgentType {
   name: string;
   soul: string;           // Personality + approach text (everything outside ## Config)
-  maxIterations: number;  // Default: 25
+  maxIterations: number;  // Default: 50
   model?: string;         // Override anthropicConfig.model (undefined = use default)
 }
 
@@ -75,7 +75,7 @@ export function getAgentType(
  * Everything else becomes the soul text.
  */
 function parseAgentFile(name: string, content: string): AgentType {
-  let maxIterations = 25;
+  let maxIterations = 50;
   let model: string | undefined;
 
   // Extract ## Config section

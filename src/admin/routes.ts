@@ -17,9 +17,11 @@ import {
   handleGetMcpCatalog,
   handleGetMessages,
   handleGetMemory,
+  handleGetTask,
   handleGetTasks,
   handleChat,
   handleCancelTask,
+  handleInterruptTask,
   handleGetTools,
   handleGetAgentTypes,
   handleGetHeartbeatConfig,
@@ -144,12 +146,20 @@ export async function handleAdminRequest(
     if (req.method === "GET" && path === "/admin/api/tasks") {
       return handleGetTasks(url, deps);
     }
+    const taskIdMatch = path.match(/^\/admin\/api\/tasks\/([^/]+)$/);
+    if (req.method === "GET" && taskIdMatch) {
+      return handleGetTask(taskIdMatch[1], deps);
+    }
     if (req.method === "POST" && path === "/admin/api/chat") {
       return handleChat(req, deps);
     }
     const cancelMatch = path.match(/^\/admin\/api\/tasks\/([^/]+)\/cancel$/);
     if (req.method === "POST" && cancelMatch) {
       return handleCancelTask(cancelMatch[1], deps);
+    }
+    const interruptMatch = path.match(/^\/admin\/api\/tasks\/([^/]+)\/interrupt$/);
+    if (req.method === "POST" && interruptMatch) {
+      return handleInterruptTask(interruptMatch[1], req, deps);
     }
     if (req.method === "GET" && path === "/admin/api/tools") {
       return handleGetTools(deps);

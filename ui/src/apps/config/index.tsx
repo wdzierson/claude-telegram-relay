@@ -43,15 +43,10 @@ function ConfigContent(_props: AppProps) {
   }
 
   return (
-    <div className="p-5 space-y-5">
+    <div className="p-6 space-y-6">
       {restartNeeded && (
         <div
-          className="flex items-center gap-2 px-3 py-2 text-sm"
-          style={{
-            background: "var(--color-status-warning)",
-            color: "var(--color-base)",
-            borderRadius: "var(--radius-button)",
-          }}
+          className="banner-warning flex items-center gap-2 text-sm"
         >
           <AlertTriangle size={14} />
           Restart required for changes to take effect.
@@ -62,13 +57,8 @@ function ConfigContent(_props: AppProps) {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors"
-          style={{
-            background: "var(--color-accent-primary)",
-            color: "var(--color-base)",
-            borderRadius: "var(--radius-button)",
-            opacity: saving ? 0.6 : 1,
-          }}
+          className="btn-primary flex items-center gap-2 text-sm font-medium transition-colors"
+          style={{ opacity: saving ? 0.6 : 1 }}
         >
           <Save size={14} />
           {saving ? "Saving..." : `Save ${Object.keys(edits).length} change${Object.keys(edits).length !== 1 ? "s" : ""}`}
@@ -77,21 +67,16 @@ function ConfigContent(_props: AppProps) {
 
       {sections.map(({ section, vars }) => (
         <section key={section}>
-          <h3 className="text-[10px] font-body font-medium uppercase tracking-widest text-text-secondary mb-2">
+          <h3 className="text-[10px] font-body font-medium uppercase tracking-widest text-text-secondary mb-4">
             {section}
           </h3>
           <div
-            className="divide-y"
-            style={{
-              border: "1px solid var(--color-glass-border)",
-              borderRadius: "var(--radius-card)",
-              overflow: "hidden",
-            }}
+            className="card-bordered divide-y"
           >
             {vars.map(({ key, value, masked, active }) => (
               <div
                 key={key}
-                className="flex items-center gap-3 px-4 py-3"
+                className="list-row flex items-center gap-3 px-4"
                 style={{ borderColor: "var(--color-border)" }}
               >
                 <span className="font-mono text-xs text-text-secondary w-56 shrink-0 truncate">
@@ -103,15 +88,14 @@ function ConfigContent(_props: AppProps) {
                     value={getValue(key, value)}
                     onChange={(e) => setEdits((prev) => ({ ...prev, [key]: e.target.value }))}
                     placeholder={active ? "" : "(not set)"}
-                    className="w-full px-2 py-1 font-mono text-xs bg-elevated border text-text-primary placeholder:text-text-secondary/50 outline-none focus:border-accent-active transition-colors"
+                    className="input w-full font-mono text-xs bg-elevated text-text-primary placeholder:text-text-secondary/50 outline-none focus:border-accent-active transition-colors"
                     style={{
                       borderColor: key in edits ? "var(--color-accent-primary)" : "var(--color-border)",
-                      borderRadius: "var(--radius-input)",
                     }}
                   />
                   {masked && (
                     <button
-                      className="p-1 text-text-secondary hover:text-accent-active transition-colors"
+                      className="p-1.5 text-text-secondary hover:text-accent-active transition-colors"
                       onClick={() =>
                         setRevealed((prev) => {
                           const next = new Set(prev);

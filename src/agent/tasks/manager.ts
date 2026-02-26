@@ -184,7 +184,7 @@ export function createTaskManager(deps: TaskManagerDeps): TaskManager {
       ? `You are a specialized ${agentType.name} agent working for ${userName} as part of the Bright AI assistant.\n\n${agentType.soul}`
       : `You are Bright, an autonomous agent working on a task for ${userName}.`;
 
-    const maxIter = agentType?.maxIterations || 25;
+    const maxIter = agentType?.maxIterations || 50;
 
     const lines = [
       identity,
@@ -373,7 +373,7 @@ export function createTaskManager(deps: TaskManagerDeps): TaskManager {
         status: "queued",
         user_id: userId,
         system_prompt: systemPrompt,
-        max_iterations: agentType?.maxIterations || 25,
+        max_iterations: agentType?.maxIterations || 50,
         priority: 0,
         metadata,
       })
@@ -410,7 +410,7 @@ export function createTaskManager(deps: TaskManagerDeps): TaskManager {
       description: row.description,
       priority: row.priority || 0,
       iterationCount: row.iteration_count || 0,
-      maxIterations: row.max_iterations || 25,
+      maxIterations: row.max_iterations || 50,
       tokenUsage: row.token_usage || { input: 0, output: 0 },
       pendingQuestion: row.pending_question,
       createdAt: row.created_at,
@@ -438,7 +438,7 @@ export function createTaskManager(deps: TaskManagerDeps): TaskManager {
       error: row.error,
       priority: row.priority || 0,
       iterationCount: row.iteration_count || 0,
-      maxIterations: row.max_iterations || 25,
+      maxIterations: row.max_iterations || 50,
       tokenUsage: row.token_usage || { input: 0, output: 0 },
       createdAt: row.created_at,
       updatedAt: row.updated_at,
@@ -533,7 +533,7 @@ export function createTaskManager(deps: TaskManagerDeps): TaskManager {
           status: "queued",
           user_id: userId,
           system_prompt: systemPrompt,
-          max_iterations: agentType?.maxIterations || 25,
+          max_iterations: agentType?.maxIterations || 50,
           priority: node.dependsOn.length === 0 ? 1 : 0,
           metadata: meta,
         })

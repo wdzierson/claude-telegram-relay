@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Zap, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { clearApiKey } from "../lib/auth";
 
 export function TopBar() {
@@ -11,34 +11,41 @@ export function TopBar() {
   }, []);
 
   return (
-    <div
-      className="flex items-center justify-between px-4 shrink-0 select-none"
-      style={{
-        height: 40,
-        background: "var(--color-surface)",
-        borderBottom: "1px solid var(--color-border)",
-      }}
-    >
-      <div className="flex items-center gap-2">
-        <Zap size={16} strokeWidth={1.5} className="text-accent-primary" />
-        <span className="font-body text-sm font-medium text-text-primary">
+    <div className="topbar flex items-center justify-between px-4 shrink-0 select-none">
+      {/* Left: Branding */}
+      <div className="flex items-center gap-2.5">
+        <div
+          className="w-5 h-5 rounded-md flex items-center justify-center shrink-0"
+          style={{ background: "var(--color-accent-primary)", opacity: 0.9 }}
+        >
+          <span style={{ fontSize: 11, color: "#fff", fontWeight: 700, lineHeight: 1 }}>B</span>
+        </div>
+        <span
+          className="text-sm font-semibold"
+          style={{ color: "var(--color-text-primary)", letterSpacing: "-0.01em" }}
+        >
           Bright OS
         </span>
       </div>
 
-      <div className="flex items-center gap-4">
-        <span className="font-mono text-xs text-text-secondary">
+      {/* Right: Clock + logout */}
+      <div className="flex items-center gap-3">
+        <span
+          className="font-mono text-xs"
+          style={{ color: "var(--color-text-secondary)", letterSpacing: "0.02em" }}
+        >
+          {time.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}
+          &ensp;
           {time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </span>
+
         <button
-          className="p-1 rounded hover:bg-elevated transition-colors"
-          onClick={() => {
-            clearApiKey();
-            window.location.reload();
-          }}
+          className="flex items-center justify-center w-7 h-7 rounded-md transition-colors hover:bg-elevated"
+          onClick={() => { clearApiKey(); window.location.reload(); }}
           title="Sign out"
+          style={{ color: "var(--color-text-secondary)" }}
         >
-          <LogOut size={12} className="text-text-secondary" />
+          <LogOut size={13} strokeWidth={1.5} />
         </button>
       </div>
     </div>

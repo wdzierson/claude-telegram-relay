@@ -44,10 +44,14 @@ export const api = {
       method: "PUT",
       body: JSON.stringify({ updates }),
     }),
-  getMessages: (limit = 50, offset = 0) =>
-    request<MessagesResponse>(`/messages?limit=${limit}&offset=${offset}`),
+  getMessages: (limit = 50, offset = 0, channel?: string) =>
+    request<MessagesResponse>(
+      `/messages?limit=${limit}&offset=${offset}${channel ? `&channel=${channel}` : ""}`
+    ),
   getMemory: (limit = 50, offset = 0) =>
     request<MemoryResponse>(`/memory?limit=${limit}&offset=${offset}`),
+  getTask: (taskId: string) =>
+    request<TaskDetailResponse>(`/tasks/${taskId}`),
   getTasks: (limit = 20, offset = 0, status?: string) =>
     request<TasksResponse>(
       `/tasks?limit=${limit}&offset=${offset}${status ? `&status=${status}` : ""}`
@@ -69,6 +73,12 @@ export const api = {
   cancelTask: (taskId: string) =>
     request<{ ok: boolean }>(`/tasks/${taskId}/cancel`, {
       method: "POST",
+    }),
+
+  interruptTask: (taskId: string, message: string) =>
+    request<{ ok: boolean }>(`/tasks/${taskId}/interrupt`, {
+      method: "POST",
+      body: JSON.stringify({ message }),
     }),
 
   getTools: () => request<ToolsResponse>("/tools"),
@@ -146,6 +156,10 @@ export interface TasksResponse {
   total?: number;
 }
 
+export interface TaskDetailResponse {
+  task: TaskRow & { conversation_history?: { role: string; content: unknown }[] };
+}
+
 export interface McpResponse {
   servers: {
     name: string;
@@ -164,7 +178,8 @@ export interface McpCatalogResponse {
     description: string;
     command: string;
     args: string[];
-    envVars?: string[];
+    envVars?: { key: string; description: string; required: boolean }[];
+    approvalPolicy?: string;
   }[];
 }
 

@@ -48,7 +48,7 @@ describe("Phase 1: buildSystemPrompt", () => {
   test("includes iteration budget guidance", () => {
     const mgr = makeManager();
     const prompt = mgr.buildSystemPrompt("Research quantum computing");
-    expect(prompt).toContain("25 tool-use iterations");
+    expect(prompt).toContain("50 tool-use iterations");
     expect(prompt).toContain("Research: 8-12 iterations");
     expect(prompt).toContain("Creation: 5-10 iterations");
     expect(prompt).toContain("Refinement: 2-3 iterations");

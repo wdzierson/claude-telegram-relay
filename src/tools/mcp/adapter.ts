@@ -72,6 +72,19 @@ export function importMCPTools(
         input_schema: normalizeSchema(mcpTool.inputSchema),
       },
       execute: async (input: Record<string, unknown>) => {
+        // Pre-validate required fields to give Claude a concise error
+        // instead of a verbose MCP JSON-RPC validation dump
+        const required = Array.isArray(mcpTool.inputSchema.required)
+          ? (mcpTool.inputSchema.required as string[])
+          : [];
+        const missing = required.filter(
+          (field) => input[field] === undefined || input[field] === null
+        );
+        if (missing.length > 0) {
+          throw new Error(
+            `Missing required field(s): ${missing.join(", ")}. You MUST include ${missing.join(" and ")} in your tool call.`
+          );
+        }
         return manager.callTool(serverConfig.name, mcpTool.name, input);
       },
       scope: serverConfig.scope || "both",

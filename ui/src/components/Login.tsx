@@ -39,15 +39,7 @@ export function Login({ onLogin }: LoginProps) {
   return (
     <div className="h-screen w-screen flex items-center justify-center bg-base">
       <div
-        className="w-full max-w-sm px-10 py-10"
-        style={{
-          border: "1px solid var(--color-glass-border)",
-          borderRadius: "var(--radius-window)",
-          background: "var(--color-glass)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-        }}
+        className="window-frame w-full max-w-sm px-10 py-10"
       >
         <div className="flex items-center gap-3 mb-10">
           <Zap size={22} strokeWidth={1.5} className="text-accent-primary" />
@@ -66,27 +58,18 @@ export function Login({ onLogin }: LoginProps) {
             onChange={(e) => setKey(e.target.value)}
             placeholder="SERVER_API_KEY"
             autoFocus
-            className="w-full px-4 py-3 mb-6 font-mono text-sm bg-elevated border text-text-primary placeholder:text-text-secondary/50 outline-none focus:border-accent-active transition-colors"
-            style={{
-              borderColor: "var(--color-border)",
-              borderRadius: "var(--radius-input)",
-            }}
+            className="input w-full font-mono text-sm bg-elevated text-text-primary placeholder:text-text-secondary/50 outline-none transition-colors mb-6"
           />
           {error && (
-            <p className="text-sm mb-4" style={{ color: "var(--color-status-error)" }}>
+            <p className="text-status-error text-sm mb-4">
               {error}
             </p>
           )}
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 font-body text-sm font-medium transition-colors"
-            style={{
-              background: "var(--color-accent-primary)",
-              color: "var(--color-base)",
-              borderRadius: "var(--radius-button)",
-              opacity: loading ? 0.6 : 1,
-            }}
+            className="btn-primary w-full flex items-center justify-center gap-2 text-sm font-medium transition-colors"
+            style={{ opacity: loading ? 0.6 : 1 }}
           >
             {loading ? "Connecting..." : "Sign In"}
             {!loading && <ArrowRight size={14} />}

@@ -1,5 +1,4 @@
 import { useCallback, useRef, type ReactNode } from "react";
-import { X, Minus, Maximize2, Minimize2 } from "lucide-react";
 import { useWindowStore, type WindowState } from "../stores/window-store";
 
 interface WindowProps {
@@ -82,63 +81,51 @@ export function Window({ win, children, icon }: WindowProps) {
 
   return (
     <div
-      className="flex flex-col animate-window-open"
-      style={{
-        ...style,
-        border: "1px solid var(--color-glass-border)",
-        borderRadius: "var(--radius-window)",
-        overflow: "hidden",
-        background: "var(--color-glass)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
-      }}
+      className="window-frame flex flex-col animate-window-open"
+      style={style}
       onMouseDown={() => focusWindow(win.id)}
     >
       {/* Title bar */}
       <div
-        className="flex items-center justify-between px-4 shrink-0 select-none cursor-default"
-        style={{
-          height: 40,
-          background: "transparent",
-          borderBottom: "1px solid var(--color-glass-border)",
-        }}
+        className="window-titlebar flex items-center shrink-0 select-none cursor-default"
         onMouseDown={onDragStart}
         onDoubleClick={() => toggleMaximize(win.id)}
+        style={{ paddingLeft: 14, paddingRight: 14 }}
       >
-        <div className="flex items-center gap-2 min-w-0">
-          {icon && <span className="text-text-secondary shrink-0">{icon}</span>}
-          <span
-            className="font-body text-xs truncate"
-            style={{ color: "var(--color-text-secondary)" }}
-          >
-            {win.title}
-          </span>
+        {/* macOS traffic lights — left side */}
+        <div className="flex items-center gap-1.5 shrink-0 z-10">
+          <button
+            className="traffic-light traffic-light-close"
+            onClick={(e) => { e.stopPropagation(); closeWindow(win.id); }}
+            title="Close"
+          />
+          <button
+            className="traffic-light traffic-light-min"
+            onClick={(e) => { e.stopPropagation(); minimizeWindow(win.id); }}
+            title="Minimize"
+          />
+          <button
+            className="traffic-light traffic-light-max"
+            onClick={(e) => { e.stopPropagation(); toggleMaximize(win.id); }}
+            title={win.isMaximized ? "Restore" : "Maximize"}
+          />
         </div>
 
-        <div className="flex items-center gap-1">
-          <button
-            className="p-1.5 rounded-full hover:bg-white/5 transition-colors"
-            onClick={(e) => { e.stopPropagation(); minimizeWindow(win.id); }}
-          >
-            <Minus size={12} className="text-text-secondary" />
-          </button>
-          <button
-            className="p-1.5 rounded-full hover:bg-white/5 transition-colors"
-            onClick={(e) => { e.stopPropagation(); toggleMaximize(win.id); }}
-          >
-            {win.isMaximized ? (
-              <Minimize2 size={12} className="text-text-secondary" />
-            ) : (
-              <Maximize2 size={12} className="text-text-secondary" />
+        {/* Title — centered absolutely so it doesn't shift with controls */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="flex items-center gap-1.5">
+            {icon && (
+              <span style={{ color: "var(--color-text-secondary)", lineHeight: 0 }}>
+                {icon}
+              </span>
             )}
-          </button>
-          <button
-            className="p-1.5 rounded-full hover:bg-status-error/20 transition-colors"
-            onClick={(e) => { e.stopPropagation(); closeWindow(win.id); }}
-          >
-            <X size={12} className="text-text-secondary" />
-          </button>
+            <span
+              className="text-xs font-medium truncate"
+              style={{ color: "var(--color-text-secondary)", maxWidth: 240, letterSpacing: "-0.01em" }}
+            >
+              {win.title}
+            </span>
+          </div>
         </div>
       </div>
 

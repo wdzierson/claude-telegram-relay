@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from "react";
 import { getApiKey } from "./auth";
 
 export interface TaskEvent {
-  type: "task:status" | "task:iteration";
+  type: "task:status" | "task:iteration" | "task:interrupted";
   taskId: string;
   status?: string;
   result?: string | null;
@@ -12,6 +12,7 @@ export interface TaskEvent {
   toolName?: string;
   thoughtText?: string;
   toolCalls?: { name: string; inputPreview: string }[];
+  interruptMessage?: string;
   timestamp: string;
 }
 

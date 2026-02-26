@@ -18,6 +18,9 @@ import { createBot } from "./channels/telegram/bot.ts";
 import { Heartbeat } from "./scheduler/heartbeat.ts";
 import { sendLongMessage } from "./channels/telegram/send.ts";
 import { createLogger } from "./utils/logger.ts";
+import { ChannelRegistry } from "./channels/registry.ts";
+import { TelegramChannel } from "./channels/telegram/channel.ts";
+import { AdminChannel } from "./channels/admin/channel.ts";
 
 // ============================================================
 // CONFIG
@@ -90,6 +93,20 @@ if (agentTypes.size > 0) {
 
 const { bot, taskQueue, taskManager, registry, mcpManager } = await createBot(config, memory, profile, agentTypes);
 
+// ============================================================
+// CHANNEL REGISTRY
+// ============================================================
+
+const primaryUserId = config.telegram.allowedUserIds[0];
+const channelRegistry = new ChannelRegistry();
+const telegramChannel = new TelegramChannel(async (text) => {
+  await sendLongMessage(bot, primaryUserId, text);
+});
+channelRegistry.register(telegramChannel, true);
+
+const adminChannel = new AdminChannel();
+channelRegistry.register(adminChannel);
+
 console.log("Starting Bright...");
 console.log(
   `Authorized users: ${config.telegram.allowedUserIds.join(", ") || "ANY (not recommended)"}`
@@ -106,7 +123,6 @@ if (taskQueue) {
 // Start heartbeat (integrated check-ins + morning briefings)
 let heartbeat: Heartbeat | null = null;
 if (config.heartbeat.enabled) {
-  const primaryUserId = config.telegram.allowedUserIds[0];
   heartbeat = new Heartbeat(config.heartbeat, {
     config,
     memory,
@@ -159,6 +175,11 @@ if (config.server) {
   // Wire broadcast from HTTP server into task queue (broadcast is set by startHTTPServer)
   if (taskQueue && adminDeps.broadcast) {
     taskQueue.setBroadcast(adminDeps.broadcast);
+  }
+
+  // Wire broadcast into AdminChannel so it can push messages to connected UI clients
+  if (adminDeps.broadcast) {
+    adminChannel.setBroadcast(adminDeps.broadcast);
   }
 }
 
