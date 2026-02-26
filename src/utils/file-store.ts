@@ -86,4 +86,39 @@ export class FileStore {
       return null;
     }
   }
+
+  /**
+   * Upload a Buffer directly to Supabase Storage.
+   * Returns the public URL, or null if the upload fails.
+   */
+  async uploadBuffer(
+    buffer: Buffer,
+    filename: string,
+    contentType: string
+  ): Promise<string | null> {
+    try {
+      const ext = filename.includes(".") ? filename.substring(filename.lastIndexOf(".")) : "";
+      const baseName = filename.includes(".")
+        ? filename.substring(0, filename.lastIndexOf("."))
+        : filename;
+      const storagePath = `${Date.now()}_${baseName}${ext}`;
+
+      const { error } = await this.supabaseClient.storage
+        .from(this.bucket)
+        .upload(storagePath, buffer, {
+          contentType,
+          upsert: false,
+        });
+
+      if (error) {
+        console.warn(`FileStore: buffer upload failed: ${error.message}`);
+        return null;
+      }
+
+      return `${this.supabaseUrl}/storage/v1/object/public/${this.bucket}/${storagePath}`;
+    } catch (err: any) {
+      console.warn(`FileStore: buffer upload error: ${err.message}`);
+      return null;
+    }
+  }
 }
