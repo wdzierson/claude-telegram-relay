@@ -3,6 +3,32 @@
 > Date-stamped entries: what changed, what's next.
 > Claude's external memory — read this at the start of every session.
 
+## 2026-02-25 — Media Processing & Persistent Attachments
+
+**What happened:**
+- Added multimodal support: Claude Vision for images/screenshots, text extraction for documents, audio transcription persistence.
+- New `attachments` table in Supabase with HNSW vector index and `match_attachments` RPC for semantic search over past uploads.
+- All uploaded files persist in Supabase Storage (`agent-files` bucket) — images, PDFs, Word docs, text files, voice notes, audio files.
+- Updated Anthropic API and chat-loop to send images as base64 vision content blocks (Claude can now actually see images).
+- Updated Telegram handlers: photo, document, voice — all download as Buffer, upload to storage, process inline, save attachment record.
+- New `search_attachments` chat tool for finding past uploads by semantic similarity.
+- Updated embed/search Edge Functions to handle the `attachments` table.
+- Database webhook `embed_attachments` manually configured in Supabase dashboard.
+
+**Supported file types:**
+- Images (jpg, png, webp, screenshots) → Claude Vision (base64 content blocks)
+- PDFs → pdf-parse text extraction
+- Word docs (.docx) → mammoth text extraction
+- Text files (.txt, .csv, .json, .md) → UTF-8 read
+- Voice notes (.ogg) → Groq/Whisper transcription + persistence
+- Audio files (.mp3, .m4a, .wav, .flac) → transcription + persistence
+
+**Smoke tested:** Building identification via photo ✅, storage persistence ✅, search_attachments tool ✅
+
+**What's next:**
+- Monitor embedding quality for attachment search in production.
+- Consider video frame extraction for future phase.
+
 ## 2026-02-19 — Project Kickoff
 
 **What happened:**

@@ -32,7 +32,7 @@ A personal AI assistant that lives on Telegram, powered by Claude. Evolving into
 
 ## Current State (as of 2026-02-20)
 
-**Working stack:** Telegram → grammY → orchestrator → Anthropic API (with tool use) → Supabase memory → reply. Voice (Groq STT + ElevenLabs TTS), durable task queue (bounded concurrency, crash recovery, mid-task dialogue), chat-level tool use (weather, search, memory, datetime, fetch-url), approval flows, MCP integration, integrated heartbeat (check-ins + morning briefings with overnight summary).
+**Working stack:** Telegram → grammY → orchestrator → Anthropic API (with tool use) → Supabase memory → reply. Voice (Groq STT + ElevenLabs TTS), durable task queue (bounded concurrency, crash recovery, mid-task dialogue), chat-level tool use (weather, search, memory, datetime, fetch-url), approval flows, MCP integration, integrated heartbeat (check-ins + morning briefings with overnight summary), multimodal file processing (Claude Vision for images, document/audio extraction, persistent Supabase Storage with semantic search via search_attachments tool).
 
 **Architecture:** Fully modularized in `src/{agent, channels/telegram, memory, voice, tools, scheduler, config}/`. Tool system with central registry, chat-loop with tool-use, human-in-the-loop approval via Telegram inline buttons, MCP client for external tool servers, durable Supabase-backed task queue with `ask_user` mid-task dialogue, and integrated heartbeat engine.
 
@@ -79,6 +79,10 @@ Chat-level tool use (weather, search, memory, datetime, fetch-url), central tool
 
 ### Phase 5.1 — Always-On Agent (done)
 Durable Supabase-backed task queue (bounded concurrency, crash recovery, resume from saved state). Mid-task dialogue via `ask_user` tool (Telegram inline buttons + free-text). Integrated heartbeat engine (smart check-ins + morning briefings with overnight activity summary). Opt-in via `HEARTBEAT_ENABLED=true`; standalone scripts preserved as fallback.
+
+### Phase 5.6 — Media Attachments (done)
+
+Claude Vision for photos/screenshots, text extraction for PDFs/Word/text docs, audio transcription persistence, Supabase Storage for all uploads, semantic search via `search_attachments` tool.
 
 ### Phase 5.5 — Voice & Calls (next)
 

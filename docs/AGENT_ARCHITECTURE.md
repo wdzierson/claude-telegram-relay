@@ -125,6 +125,12 @@ Currently two patterns:
 
 These run as separate processes (launched by cron/launchd/PM2), not inside the main relay.
 
+### `src/utils/` — Utilities
+
+Shared helper modules used across channels and agent layers.
+
+- `src/utils/extract.ts` — Text extraction for PDFs (pdf-parse), Word docs (mammoth), plain text, and audio transcription routing. Returns null for images (handled by vision).
+
 ## Data Flow
 
 ```
@@ -160,10 +166,11 @@ Claude CLI supports `--resume <sessionId>` for conversation continuity. Session 
 
 ## Database Schema (Supabase)
 
-Three tables:
+Four tables:
 - **messages** — conversation log with optional `embedding VECTOR(1536)`.
 - **memory** — facts, goals, preferences with embeddings.
 - **logs** — observability (level, event, message, duration).
+- **attachments** — uploaded files (images, documents, audio) with storage URLs, extracted text, and embeddings. Searchable via `match_attachments` RPC and `search_attachments` tool.
 
 Two Edge Functions (Deno, deployed to Supabase):
 - **embed** — triggered by INSERT webhook on messages/memory, generates OpenAI embedding.
